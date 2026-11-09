@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Gabi: a night walk through a lake town</title>
+  <meta name="description" content="Gabi is a concept by HELIOKI: a scroll-driven night walk through an imagined heritage town on a volcanic lake, inspired by Taal, Batangas." />
+  <meta name="theme-color" content="#0b0d14" />
+  <meta name="color-scheme" content="dark" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%230b0d14%27/%3E%3Crect x=%2710%27 y=%279%27 width=%2712%27 height=%2714%27 rx=%272%27 fill=%27%23f0a54a%27/%3E%3Cpath d=%27M16 9v14M10 16h12%27 stroke=%27%230b0d14%27 stroke-width=%271.5%27/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></symbol>
+      <symbol id="i-out" viewBox="0 0 24 24"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+    </defs>
+  </svg>
+
+  <a class="skip" href="#lawa">Skip to the walk</a>
+  <div class="still" aria-hidden="true"></div>
+  <canvas id="gl" aria-hidden="true"></canvas>
+
+  <header class="bar" data-bar>
+    <a class="brand" href="#top"><span class="pane" aria-hidden="true"></span>Gabi</a>
+    <nav class="links" aria-label="Chapters">
+      <a href="#lawa">Lawa</a>
+      <a href="#hagdan">Hagdan</a>
+      <a href="#bahay">Bahay na bato</a>
+      <a href="#simbahan">Simbahan</a>
+      <a href="#liwanag">Liwanag</a>
+    </nav>
+    <button class="menu-btn" type="button" aria-expanded="false" aria-controls="menu" data-menu-btn>Chapters</button>
+  </header>
+
+  <div class="menu" id="menu" hidden data-menu>
+    <nav aria-label="Chapters">
+      <a href="#lawa"><span class="num">01</span>Lawa, the lake</a>
+      <a href="#hagdan"><span class="num">02</span>Hagdan, the stair</a>
+      <a href="#bahay"><span class="num">03</span>Bahay na bato, the stone houses</a>
+      <a href="#simbahan"><span class="num">04</span>Simbahan, the church</a>
+      <a href="#liwanag"><span class="num">05</span>Liwanag, the light</a>
+    </nav>
+  </div>
+
+  <!-- The chapter rail: one capiz pane per chapter, lit as you reach it. -->
+  <nav class="rail" aria-label="Your place in the walk" data-rail>
+    <a href="#top" aria-label="Start"><span>Start</span></a>
+    <a href="#lawa" aria-label="Chapter 1, Lawa"><span>Lawa</span></a>
+    <a href="#hagdan" aria-label="Chapter 2, Hagdan"><span>Hagdan</span></a>
+    <a href="#bahay" aria-label="Chapter 3, Bahay na bato"><span>Bahay na bato</span></a>
+    <a href="#simbahan" aria-label="Chapter 4, Simbahan"><span>Simbahan</span></a>
+    <a href="#liwanag" aria-label="Chapter 5, Liwanag"><span>Liwanag</span></a>
+  </nav>
+
+  <main>
+    <section class="ch ch--hero" id="top" data-shot="top" aria-labelledby="h-top">
+      <div class="copy">
+        <p class="label">A night walk in five chapters</p>
+        <h1 id="h-top" data-words>A night walk through a town on the lake</h1>
+        <p class="lede">Scroll to walk from the water’s edge, up a candlelit stair and past capiz windows, to the church on the hill. The town is imagined, after Taal in Batangas.</p>
+        <a class="btn" href="#lawa">Start walking<svg class="i" aria-hidden="true"><use href="#i-down"/></svg></a>
+      </div>
+      <div class="fg fg--bottom" data-fg="grass" aria-hidden="true"></div>
+    </section>
+
+    <section class="ch" id="lawa" data-shot="lawa" aria-labelledby="h-lawa">
+      <div class="copy">
+        <p class="label"><span class="num">01</span>Lawa, the lake</p>
+        <h2 id="h-lawa" data-words>The lake keeps the moon</h2>
+        <p>A bangka rocks at its mooring. Its one lantern lays a gold line across the water, and the mist sits low enough to touch.</p>
+      </div>
+      <div class="fg fg--full" data-fg="banana" aria-hidden="true"></div>
+    </section>
+
+    <section class="ch" id="hagdan" data-shot="hagdan" aria-labelledby="h-hagdan">
+      <div class="copy">
+        <p class="label"><span class="num">02</span>Hagdan, the stair</p>
+        <h2 id="h-hagdan" data-words>Thirty-six steps, a candle on every third</h2>
+        <p>The stair climbs the old sea wall into town. People light a candle on their way up, and the fireflies keep the ones that went out company.</p>
+      </div>
+      <div class="fg fg--full" data-fg="bamboo" aria-hidden="true"></div>
+    </section>
+
+    <section class="ch" id="bahay" data-shot="bahay" aria-labelledby="h-bahay">
+      <div class="copy">
+        <p class="label"><span class="num">03</span>Bahay na bato, the stone houses</p>
+        <h2 id="h-bahay" data-words>Stone below, wood above</h2>
+        <p>The houses keep their stone feet in the rain and live upstairs, behind sliding windows of capiz shell that turn lamplight soft.</p>
+      </div>
+      <div class="fg fg--top" data-fg="eave" aria-hidden="true"></div>
+    </section>
+
+    <section class="ch" id="simbahan" data-shot="simbahan" aria-labelledby="h-simbahan">
+      <div class="copy">
+        <p class="label"><span class="num">04</span>Simbahan, the church</p>
+        <h2 id="h-simbahan" data-words>The church at the top of the town</h2>
+        <p>Its doors stay open late. Light from inside reaches halfway down the plaza, and the bell tower is the last thing you lose in the fog.</p>
+      </div>
+    </section>
+
+    <section class="ch" id="liwanag" data-shot="liwanag" aria-labelledby="h-liwanag">
+      <div class="copy">
+        <p class="label"><span class="num">05</span>Liwanag, the light</p>
+        <h2 id="h-liwanag" data-words>Then the parols come on</h2>
+        <p>From above the plaza the whole town shows. Star lanterns light up string by string, all the way down the street to the water.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="end">
+        <div>
+          <p class="end-title">Gabi is a design concept by HELIOKI</p>
+          <p>A scroll-driven 3D walk of the kind a heritage town, a resort or a tourism office could put online. One camera, one page, and every surface drawn in code.</p>
+        </div>
+        <div class="end-links">
+          <a href="https://github.com/heliokii" target="_blank" rel="noopener">HELIOKI on GitHub<svg class="i" aria-hidden="true"><use href="#i-out"/></svg></a>
+          <a href="#top">Walk it again</a>
+        </div>
+        <p class="end-note">The town is fictional, inspired by Taal heritage. Not affiliated with any parish or tourism office. The idea of a scroll-driven night walk comes from <a href="https://github.com/MengTo/kage" target="_blank" rel="noopener">Kage by Meng To</a>. No code or art was reused.</p>
+  </footer>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

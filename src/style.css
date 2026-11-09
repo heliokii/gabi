@@ -1,0 +1,141 @@
+/* Gabi. Night ink neutrals, one candle accent. 4px grid, one easing curve. */
+:root {
+  --bg: #0b0d14;
+  --surface: #11141c;
+  --raised: #1a1e28;
+  --text: #eef0f5;
+  --text-2: #a9afbd;
+  --muted: #7d8599;
+  --line: rgb(238 240 245 / 0.08);
+  --candle: #f0a54a;
+  --candle-ink: #1a1206;
+  --silhouette: #04050a;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --gutter: clamp(20px, 5vw, 64px);
+  --font-ui: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Newsreader', 'Iowan Old Style', Georgia, serif;
+}
+@media (prefers-contrast: more) {
+  :root { --text-2: #d3d7e0; --muted: #b0b6c4; --line: rgb(238 240 245 / 0.22); }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html {
+  background: var(--bg);
+  color: var(--text);
+  font: 400 16px/1.6 var(--font-ui);
+  /* The Mac look, wherever we can choose it: grayscale smoothing, a thin quiet scrollbar. */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-optical-sizing: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(238 240 245 / 0.18) transparent;
+}
+body { margin: 0; overflow-x: clip; }
+::selection { background: var(--candle); color: var(--candle-ink); }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--candle); outline-offset: 3px; border-radius: 4px; }
+.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+.skip { position: fixed; left: 16px; top: -64px; z-index: 50; padding: 8px 12px; border-radius: 8px; background: var(--text); color: var(--bg); text-decoration: none; font-weight: 500; transition: top 160ms var(--ease); }
+.skip:focus { top: 16px; }
+
+/* ---------- backdrop: the live scene, with a still plate behind it until it is ready ---------- */
+#gl, .still { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; }
+#gl { display: block; opacity: 0; transition: opacity 900ms var(--ease); }
+html.is-live #gl { opacity: 1; }
+.still {
+  background:
+    radial-gradient(circle at 74% 30%, #f3ead7 0 3.2vmin, rgb(243 234 215 / 0) 3.3vmin),
+    linear-gradient(#03050a 0%, #0d1220 46%, #161d2c 58%, #0a0d15 58.2%, #06080d 100%);
+}
+
+/* ---------- top bar: clear over the sky, a frosted material once the page moves ---------- */
+.bar {
+  position: fixed; inset: 0 0 auto; z-index: 20; height: 64px;
+  display: flex; align-items: center; gap: 32px; padding: 0 var(--gutter);
+  border-bottom: 1px solid transparent;
+  transition: background-color 300ms var(--ease), border-color 300ms var(--ease);
+}
+.bar.is-scrolled { background: rgb(11 13 20 / 0.55); border-color: var(--line); -webkit-backdrop-filter: blur(20px) saturate(150%); backdrop-filter: blur(20px) saturate(150%); }
+@media (prefers-reduced-transparency: reduce) { .bar.is-scrolled { background: var(--bg); -webkit-backdrop-filter: none; backdrop-filter: none; } }
+.brand { display: inline-flex; align-items: center; gap: 10px; font: 500 18px/1 var(--font-display); text-decoration: none; letter-spacing: 0.01em; }
+.pane { width: 12px; height: 14px; border-radius: 2px; background: linear-gradient(#ffe3b4, var(--candle)); box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.25); }
+.links { display: flex; gap: 4px; margin-left: auto; }
+.links a { padding: 6px 12px; border-radius: 8px; font-size: 14px; font-weight: 500; color: var(--text-2); text-decoration: none; transition: color 160ms var(--ease), background-color 160ms var(--ease); }
+.links a:hover { color: var(--text); background: rgb(238 240 245 / 0.06); }
+.links a[aria-current='true'] { color: var(--text); }
+.menu-btn { display: none; margin-left: auto; height: 36px; padding: 0 16px; border: 1px solid var(--line); border-radius: 10px; background: rgb(26 30 40 / 0.7); color: var(--text); font: 500 14px/1 var(--font-ui); cursor: pointer; }
+.menu { position: fixed; inset: 72px 12px auto; z-index: 30; padding: 8px; border: 1px solid var(--line); border-radius: 16px; background: rgb(17 20 28 / 0.86); -webkit-backdrop-filter: blur(24px) saturate(150%); backdrop-filter: blur(24px) saturate(150%); box-shadow: 0 16px 40px rgb(0 0 0 / 0.4); }
+.menu nav { display: grid; gap: 2px; }
+.menu a { display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 12px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 500; }
+.menu a:hover, .menu a:focus-visible { background: var(--raised); }
+@media (prefers-reduced-transparency: reduce) { .menu { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; } }
+@media (max-width: 860px) { .links { display: none; } .menu-btn { display: inline-flex; align-items: center; } }
+
+/* ---------- the rail: one capiz pane per chapter ---------- */
+.rail { position: fixed; right: clamp(12px, 2.4vw, 32px); top: 50%; z-index: 20; translate: 0 -50%; display: grid; gap: 8px; }
+.rail a { position: relative; display: block; width: 12px; height: 14px; border-radius: 2px; border: 1px solid rgb(238 240 245 / 0.28); background: rgb(238 240 245 / 0.04); transition: background-color 300ms var(--ease), border-color 300ms var(--ease); }
+.rail a::before { content: ''; position: absolute; inset: -8px -10px; } /* a bigger target than the pane */
+.rail a::after { content: ''; position: absolute; inset: 0 50% 0 auto; width: 1px; background: rgb(0 0 0 / 0.35); }
+.rail a.is-past { background: rgb(240 165 74 / 0.32); border-color: rgb(240 165 74 / 0.45); }
+.rail a.is-now { background: linear-gradient(#ffe3b4, var(--candle)); border-color: var(--candle); }
+.rail span { position: absolute; right: 24px; top: 50%; translate: 4px -50%; white-space: nowrap; font-size: 13px; font-weight: 500; color: var(--text); opacity: 0; pointer-events: none; transition: opacity 160ms var(--ease), translate 160ms var(--ease); }
+.rail a:hover span, .rail a:focus-visible span { opacity: 1; translate: 0 -50%; }
+
+/* ---------- chapters ---------- */
+main { position: relative; z-index: 1; }
+.ch { position: relative; min-height: 160svh; display: grid; align-items: center; padding: 128px var(--gutter); }
+.ch--hero { min-height: 100svh; align-items: center; padding-top: 96px; }
+/* A neutral shade behind the words only, so they read over any frame of the scene. */
+.ch::before { content: ''; position: absolute; inset: 0 35% 0 0; pointer-events: none; background: linear-gradient(90deg, rgb(7 8 13 / 0.72), rgb(7 8 13 / 0)); }
+.copy { position: relative; z-index: 2; max-width: 34rem; }
+.label { display: flex; align-items: baseline; gap: 12px; margin: 0 0 16px; font-size: 14px; font-weight: 500; color: var(--text-2); }
+.num { font-variant-numeric: tabular-nums; color: var(--candle); }
+h1, h2 { margin: 0; font-family: var(--font-display); font-weight: 400; text-wrap: balance; }
+h1 { font-size: clamp(40px, 6.2vw, 80px); line-height: 1.03; letter-spacing: -0.025em; }
+h2 { font-size: clamp(34px, 4.6vw, 60px); line-height: 1.06; letter-spacing: -0.02em; }
+.copy p:not(.label) { margin: 24px 0 0; max-width: 32rem; font-size: clamp(16px, 1.3vw, 19px); line-height: 1.6; color: var(--text-2); text-wrap: pretty; }
+.btn { display: inline-flex; align-items: center; gap: 10px; height: 48px; margin-top: 40px; padding: 0 20px; border-radius: 10px; background: var(--text); color: var(--bg); font-size: 15px; font-weight: 500; text-decoration: none; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.5); transition: background-color 160ms var(--ease), transform 120ms var(--ease); }
+.btn:hover { background: #ffffff; }
+.btn:active { transform: scale(0.98); }
+.w { display: inline-block; }
+
+/* ---------- foreground silhouettes ---------- */
+.fg { position: absolute; z-index: 1; pointer-events: none; color: var(--silhouette); fill: var(--silhouette); }
+.fg svg { display: block; width: 100%; height: 100%; }
+/* With the live scene, each chapter's silhouettes hold to the screen while it is the shot, as near things do. */
+html:not(.is-static) .fg { position: fixed; }
+.fg--bottom { left: 0; right: 0; bottom: 0; height: 30vh; }
+.fg--full { inset: 0; top: auto; height: 100svh; }
+.fg--top { left: 0; right: 0; top: 0; height: 14vh; }
+
+/* ---------- the end ---------- */
+.end { position: relative; z-index: 2; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px 48px; padding: 48px var(--gutter) 40px; border-top: 1px solid var(--line); background: var(--bg); }
+.end p { margin: 0; max-width: 34rem; color: var(--text-2); font-size: 15px; }
+.end .end-title { margin-bottom: 8px; color: var(--text); font: 400 24px/1.25 var(--font-display); }
+.end-links { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.end-links a { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 500; text-decoration: none; color: var(--text); }
+.end-links a:hover { color: var(--candle); }
+.end .end-note { grid-column: 1 / -1; max-width: 44rem; font-size: 13px; line-height: 1.6; color: var(--muted); }
+.end-note a { text-underline-offset: 3px; }
+@media (max-width: 640px) { .end { grid-template-columns: 1fr; } }
+
+/* ---------- still mode: reduced motion, Data Saver or no WebGL. Same words, no live scene. ---------- */
+html.is-static #gl { display: none; }
+html.is-static .ch:not(.ch--hero) { background: linear-gradient(rgb(11 13 20 / 0), rgb(11 13 20 / 0.6) 30%, rgb(11 13 20 / 0.6) 70%, rgb(11 13 20 / 0)); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0ms !important; }
+}
+
+/* ---------- phones: keep words clear of the rail, keep near things near ---------- */
+@media (max-width: 640px) {
+  .copy { padding-right: 28px; }
+  .ch::before { inset: 0; background: linear-gradient(90deg, rgb(7 8 13 / 0.72), rgb(7 8 13 / 0.4)); }
+}
+@media (max-aspect-ratio: 3/4) {
+  .fg--full { height: 55svh; }
+  .fg--bottom { height: 22vh; }
+}
