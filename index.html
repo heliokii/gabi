@@ -7,6 +7,15 @@
   <meta name="description" content="Gabi is a concept by HELIOKI: a scroll-driven night walk through an imagined heritage town on a volcanic lake, inspired by Taal, Batangas." />
   <meta name="theme-color" content="#0b0d14" />
   <meta name="color-scheme" content="dark" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Gabi: a night walk through a lake town" />
+  <meta property="og:description" content="A scroll-driven night walk through an imagined heritage town on a volcanic lake, inspired by Taal, Batangas." />
+  <!-- shortcut: relative image URL, most link scrapers need an absolute one; set it once the site has a domain -->
+  <meta property="og:image" content="/og.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="A moonlit lake with a volcano island and tall grass, beside the words: A night walk through a town on the lake" />
+  <meta name="twitter:card" content="summary_large_image" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%230b0d14%27/%3E%3Crect x=%2710%27 y=%279%27 width=%2712%27 height=%2714%27 rx=%272%27 fill=%27%23f0a54a%27/%3E%3Cpath d=%27M16 9v14M10 16h12%27 stroke=%27%230b0d14%27 stroke-width=%271.5%27/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -18,6 +27,8 @@
       <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></symbol>
       <symbol id="i-out" viewBox="0 0 24 24"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></symbol>
       <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+      <symbol id="i-sound" viewBox="0 0 24 24"><path d="M11 4.7a.7.7 0 0 0-1.2-.5L6.4 7.6a1.4 1.4 0 0 1-1 .4H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.4a1.4 1.4 0 0 1 1 .4l3.4 3.4a.7.7 0 0 0 1.2-.5z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.4 18.4a9 9 0 0 0 0-12.8"/></symbol>
+      <symbol id="i-mute" viewBox="0 0 24 24"><path d="M11 4.7a.7.7 0 0 0-1.2-.5L6.4 7.6a1.4 1.4 0 0 1-1 .4H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.4a1.4 1.4 0 0 1 1 .4l3.4 3.4a.7.7 0 0 0 1.2-.5z"/><path d="m22 9-6 6"/><path d="m16 9 6 6"/></symbol>
     </defs>
   </svg>
 
@@ -26,24 +37,25 @@
   <canvas id="gl" aria-hidden="true"></canvas>
 
   <header class="bar" data-bar>
-    <a class="brand" href="#top"><span class="pane" aria-hidden="true"></span>Gabi</a>
+    <a class="brand" href="#top"><span class="pane" aria-hidden="true"></span><span lang="tl">Gabi</span></a>
     <nav class="links" aria-label="Chapters">
-      <a href="#lawa">Lawa</a>
-      <a href="#hagdan">Hagdan</a>
-      <a href="#bahay">Bahay na bato</a>
-      <a href="#simbahan">Simbahan</a>
-      <a href="#liwanag">Liwanag</a>
+      <a href="#lawa" lang="tl">Lawa</a>
+      <a href="#hagdan" lang="tl">Hagdan</a>
+      <a href="#bahay" lang="tl">Bahay na bato</a>
+      <a href="#simbahan" lang="tl">Simbahan</a>
+      <a href="#liwanag" lang="tl">Liwanag</a>
     </nav>
-    <button class="menu-btn" type="button" aria-expanded="false" aria-controls="menu" data-menu-btn>Chapters</button>
+    <button class="chip sound-btn" type="button" aria-pressed="false" data-sound><svg class="i i-on" aria-hidden="true"><use href="#i-sound"/></svg><svg class="i i-off" aria-hidden="true"><use href="#i-mute"/></svg>Sound</button>
+    <button class="chip menu-btn" type="button" aria-expanded="false" aria-controls="menu" data-menu-btn>Chapters<svg class="i" aria-hidden="true"><use href="#i-x"/></svg></button>
   </header>
 
   <div class="menu" id="menu" hidden data-menu>
     <nav aria-label="Chapters">
-      <a href="#lawa"><span class="num">01</span>Lawa, the lake</a>
-      <a href="#hagdan"><span class="num">02</span>Hagdan, the stair</a>
-      <a href="#bahay"><span class="num">03</span>Bahay na bato, the stone houses</a>
-      <a href="#simbahan"><span class="num">04</span>Simbahan, the church</a>
-      <a href="#liwanag"><span class="num">05</span>Liwanag, the light</a>
+      <a href="#lawa"><span class="num">01</span><span><span lang="tl">Lawa</span>, the lake</span></a>
+      <a href="#hagdan"><span class="num">02</span><span><span lang="tl">Hagdan</span>, the stair</span></a>
+      <a href="#bahay"><span class="num">03</span><span><span lang="tl">Bahay na bato</span>, the stone houses</span></a>
+      <a href="#simbahan"><span class="num">04</span><span><span lang="tl">Simbahan</span>, the church</span></a>
+      <a href="#liwanag"><span class="num">05</span><span><span lang="tl">Liwanag</span>, the light</span></a>
     </nav>
   </div>
 
@@ -70,16 +82,16 @@
 
     <section class="ch" id="lawa" data-shot="lawa" aria-labelledby="h-lawa">
       <div class="copy">
-        <p class="label"><span class="num">01</span>Lawa, the lake</p>
+        <p class="label"><span class="num">01</span><span><span lang="tl">Lawa</span>, the lake</span></p>
         <h2 id="h-lawa" data-words>The lake keeps the moon</h2>
-        <p>A bangka rocks at its mooring. Its one lantern lays a gold line across the water, and the mist sits low enough to touch.</p>
+        <p>A <span lang="tl">bangka</span> rocks at its mooring. Its one lantern lays a gold line across the water, and the mist sits low enough to touch.</p>
       </div>
       <div class="fg fg--full" data-fg="banana" aria-hidden="true"></div>
     </section>
 
     <section class="ch" id="hagdan" data-shot="hagdan" aria-labelledby="h-hagdan">
       <div class="copy">
-        <p class="label"><span class="num">02</span>Hagdan, the stair</p>
+        <p class="label"><span class="num">02</span><span><span lang="tl">Hagdan</span>, the stair</span></p>
         <h2 id="h-hagdan" data-words>Thirty-six steps, a candle on every third</h2>
         <p>The stair climbs the old sea wall into town. People light a candle on their way up, and the fireflies keep the ones that went out company.</p>
       </div>
@@ -88,7 +100,7 @@
 
     <section class="ch" id="bahay" data-shot="bahay" aria-labelledby="h-bahay">
       <div class="copy">
-        <p class="label"><span class="num">03</span>Bahay na bato, the stone houses</p>
+        <p class="label"><span class="num">03</span><span><span lang="tl">Bahay na bato</span>, the stone houses</span></p>
         <h2 id="h-bahay" data-words>Stone below, wood above</h2>
         <p>The houses keep their stone feet in the rain and live upstairs, behind sliding windows of capiz shell that turn lamplight soft.</p>
       </div>
@@ -97,7 +109,7 @@
 
     <section class="ch" id="simbahan" data-shot="simbahan" aria-labelledby="h-simbahan">
       <div class="copy">
-        <p class="label"><span class="num">04</span>Simbahan, the church</p>
+        <p class="label"><span class="num">04</span><span><span lang="tl">Simbahan</span>, the church</span></p>
         <h2 id="h-simbahan" data-words>The church at the top of the town</h2>
         <p>Its doors stay open late. Light from inside reaches halfway down the plaza, and the bell tower is the last thing you lose in the fog.</p>
       </div>
@@ -105,7 +117,7 @@
 
     <section class="ch" id="liwanag" data-shot="liwanag" aria-labelledby="h-liwanag">
       <div class="copy">
-        <p class="label"><span class="num">05</span>Liwanag, the light</p>
+        <p class="label"><span class="num">05</span><span><span lang="tl">Liwanag</span>, the light</span></p>
         <h2 id="h-liwanag" data-words>Then the parols come on</h2>
         <p>From above the plaza the whole town shows. Star lanterns light up string by string, all the way down the street to the water.</p>
       </div>

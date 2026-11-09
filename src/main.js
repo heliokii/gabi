@@ -4,6 +4,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
 import { drawForeground } from './foreground.js';
+import { createSound } from './sound.js';
 
 gsap.registerPlugin(ScrollTrigger);
 const root = document.documentElement;
@@ -13,8 +14,8 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const saveData = navigator.connection?.saveData === true;
 const webgl = (() => { try { return !!document.createElement('canvas').getContext('webgl2'); } catch { return false; } })();
-const live = !reduced && !saveData && webgl;
-if (!live) root.classList.add('is-static');
+const live = !saveData && webgl; // with reduced motion the scene still runs, as held shots
+if (!live || reduced) root.classList.add('is-static');
 
 const sections = $$('[data-shot]');
 drawForeground();
@@ -38,16 +39,23 @@ const menu = $('[data-menu]'), menuBtn = $('[data-menu-btn]');
 const setMenu = (open) => {
   menu.hidden = !open;
   menuBtn.setAttribute('aria-expanded', String(open));
-  if (open) $('a', menu).focus();
+  if (open) ($('[aria-current="true"]', menu) || $('a', menu)).focus();
 };
 menuBtn.addEventListener('click', () => setMenu(menu.hidden));
 menu.addEventListener('click', (e) => { if (e.target.closest('a')) setMenu(false); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !menu.hidden) { setMenu(false); menuBtn.focus(); } });
+document.addEventListener('pointerdown', (e) => { if (!menu.hidden && !menu.contains(e.target) && !menuBtn.contains(e.target)) setMenu(false); });
 
-/* ---------- where you are: rail panes and nav ---------- */
+/* ---------- sound, off until asked for ---------- */
+const sound = createSound();
+const soundBtn = $('[data-sound]');
+soundBtn.addEventListener('click', () => soundBtn.setAttribute('aria-pressed', String(sound.toggle())));
+
+/* ---------- where you are: rail panes, nav, menu, sound ---------- */
 const panes = $$('a', $('[data-rail]'));
-const navLinks = $$('.links a');
+const navLinks = $$('.links a, .menu a');
 function setChapter(i) {
+  sound.setChapter(i);
   panes.forEach((a, j) => {
     a.classList.toggle('is-past', j < i);
     a.classList.toggle('is-now', j === i);
@@ -93,7 +101,11 @@ if (!reduced) {
 if (live) {
   import('./scene.js')
     .then(({ start }) => {
-      const scene = start($('#gl'), sections, { onFirstFrame: () => root.classList.add('is-live') });
+      const scene = start($('#gl'), sections, {
+        still: reduced,
+        onFirstFrame: () => root.classList.add('is-live'),
+        onLost: () => { root.classList.remove('is-live'); root.classList.add('is-static'); },
+      });
       document.fonts?.ready.then(() => { scene.measure(); ScrollTrigger.refresh(); });
     })
     .catch((err) => {

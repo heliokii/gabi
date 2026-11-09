@@ -23,12 +23,17 @@ const Grade = {
     }`,
 };
 
-export function start(canvas, sections, { onFirstFrame } = {}) {
+/*
+ * `still`: for reduced motion. The camera never moves; each chapter is one held shot, cut to as you
+ * scroll, and a frame is drawn only when the shot changes.
+ */
+export function start(canvas, sections, { onFirstFrame, onLost, still = false } = {}) {
   const weak = (navigator.hardwareConcurrency || 8) <= 4 || (navigator.deviceMemory || 8) <= 4;
-  const dpr = Math.min(window.devicePixelRatio || 1, weak ? 1.25 : 1.75);
+  let dpr = Math.min(window.devicePixelRatio || 1, weak ? 1.25 : 1.75);
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(dpr);
+  let stopped = false;
+  canvas.addEventListener('webglcontextlost', () => { stopped = true; onLost?.(); });
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.15;
 
@@ -47,7 +52,9 @@ export function start(canvas, sections, { onFirstFrame } = {}) {
 
   let anchors = [0, 1];
   let bufferH = 1;
+  let dirty = true;
   const measure = () => {
+    dirty = true;
     const y = window.scrollY;
     anchors = anchorsFor(
       sections.map((s) => { const r = s.getBoundingClientRect(); return { top: r.top + y, height: r.height }; }),
@@ -57,6 +64,7 @@ export function start(canvas, sections, { onFirstFrame } = {}) {
   };
   const resize = () => {
     const w = window.innerWidth, h = window.innerHeight;
+    renderer.setPixelRatio(dpr);
     renderer.setSize(w, h, false);
     composer.setPixelRatio(dpr);
     composer.setSize(w, h);
@@ -71,17 +79,31 @@ export function start(canvas, sections, { onFirstFrame } = {}) {
 
   /* A hand-held drift that follows a mouse, never a finger. */
   let tx = 0, ty = 0, mx = 0, my = 0;
-  if (matchMedia('(pointer: fine)').matches) {
+  if (!still && matchMedia('(pointer: fine)').matches) {
     window.addEventListener('pointermove', (e) => { tx = (e.clientX / window.innerWidth) * 2 - 1; ty = (e.clientY / window.innerHeight) * 2 - 1; });
   }
 
   const pose = { position: new THREE.Vector3(), target: new THREE.Vector3(), fov: 40 };
   let p = progressAt(window.scrollY, anchors);
   let t = 0, last = performance.now(), first = true;
+  let slow = 0; // net seconds spent under 40 fps; enough of them and the GPU gets fewer pixels
   function frame(now) {
-    const dt = Math.min((now - last) / 1000, 0.05);
-    last = now; t += dt;
-    p = damp(p, progressAt(window.scrollY, anchors), 4.5, dt);
+    if (stopped) return;
+    requestAnimationFrame(frame);
+    const gap = (now - last) / 1000, dt = Math.min(gap, 0.05);
+    last = now;
+    if (still) {
+      const shot = Math.round(progressAt(window.scrollY, anchors));
+      if (shot === p && !dirty) return;
+      p = shot;
+    } else {
+      t += dt;
+      p = damp(p, progressAt(window.scrollY, anchors), 4.5, dt);
+      // a gap of a quarter second or more is a throttled background window, not a slow GPU
+      if (gap < 0.25) slow = dt > 1 / 40 ? slow + dt : Math.max(0, slow - dt / 2);
+      if (slow > 3 && dpr > 0.75) { dpr = Math.max(0.75, dpr * 0.75); slow = 0; resize(); }
+    }
+    dirty = false;
     poseAt(p, camera.aspect, pose);
     mx = damp(mx, tx, 2.4, dt); my = damp(my, ty, 2.4, dt);
     camera.position.copy(pose.position);
@@ -94,7 +116,6 @@ export function start(canvas, sections, { onFirstFrame } = {}) {
     grade.uniforms.uTime.value = t;
     composer.render(dt);
     if (first) { first = false; onFirstFrame?.(); }
-    requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
   return { measure };
