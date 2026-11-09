@@ -19,6 +19,8 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%230b0d14%27/%3E%3Crect x=%2710%27 y=%279%27 width=%2712%27 height=%2714%27 rx=%272%27 fill=%27%23f0a54a%27/%3E%3Cpath d=%27M16 9v14M10 16h12%27 stroke=%27%230b0d14%27 stroke-width=%271.5%27/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- Baybayin, only the glyphs the page uses -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tagalog&text=%E1%9C%84%E1%9C%86%E1%9C%87%E1%9C%88%E1%9C%8A%E1%9C%8B%E1%9C%8C%E1%9C%8E%E1%9C%8F%E1%9C%90%E1%9C%91%E1%9C%92%E1%9C%93%E1%9C%94&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet" />
 </head>
 <body>
@@ -77,21 +79,37 @@
         <p class="lede">Scroll to walk from the water’s edge, up a candlelit stair and past capiz windows, to the church on the hill. The town is imagined, after Taal in Batangas.</p>
         <a class="btn" href="#lawa">Start walking<svg class="i" aria-hidden="true"><use href="#i-down"/></svg></a>
       </div>
+      <p class="bay-v" aria-hidden="true"><span>ᜄ</span><span>ᜊᜒ</span></p>
+      <p class="mark" aria-hidden="true" data-mark><span>G</span><span>A</span><span>B</span><span>I</span></p>
       <div class="fg fg--bottom" data-fg="grass" aria-hidden="true"></div>
+      <div class="index" aria-hidden="true">
+        <a href="#lawa" tabindex="-1"><span>01</span>Lawa</a>
+        <a href="#hagdan" tabindex="-1"><span>02</span>Hagdan</a>
+        <a href="#bahay" tabindex="-1"><span>03</span>Bahay na bato</a>
+        <a href="#simbahan" tabindex="-1"><span>04</span>Simbahan</a>
+        <a href="#liwanag" tabindex="-1"><span>05</span>Liwanag</a>
+      </div>
     </section>
 
-    <section class="ch" id="lawa" data-shot="lawa" aria-labelledby="h-lawa">
+    <section class="ch ch--lawa" id="lawa" data-shot="lawa" aria-labelledby="h-lawa">
       <div class="copy">
-        <p class="label"><span class="num">01</span><span><span lang="tl">Lawa</span>, the lake</span></p>
+        <p class="label"><span class="num">01</span><span><span lang="tl">Lawa</span>, the lake</span><span class="bay" aria-hidden="true">ᜎᜏ</span></p>
         <h2 id="h-lawa" data-words>The lake keeps the moon</h2>
         <p>A <span lang="tl">bangka</span> rocks at its mooring. Its one lantern lays a gold line across the water, and the mist sits low enough to touch.</p>
       </div>
+      <!-- Counted from layout.js; path.test.js keeps them honest. -->
+      <dl class="stats" data-reveal>
+        <div><dt>Steps up the sea wall</dt><dd data-count="steps">36</dd></div>
+        <div><dt>Candles on the stair</dt><dd data-count="candles">24</dd></div>
+        <div><dt>Stone houses</dt><dd data-count="houses">12</dd></div>
+        <div><dt>Parols on the strings</dt><dd data-count="parols">28</dd></div>
+      </dl>
       <div class="fg fg--full" data-fg="banana" aria-hidden="true"></div>
     </section>
 
     <section class="ch" id="hagdan" data-shot="hagdan" aria-labelledby="h-hagdan">
       <div class="copy">
-        <p class="label"><span class="num">02</span><span><span lang="tl">Hagdan</span>, the stair</span></p>
+        <p class="label"><span class="num">02</span><span><span lang="tl">Hagdan</span>, the stair</span><span class="bay" aria-hidden="true">ᜑᜄ᜔ᜇᜈ᜔</span></p>
         <h2 id="h-hagdan" data-words>Thirty-six steps, a candle on every third</h2>
         <p>The stair climbs the old sea wall into town. People light a candle on their way up, and the fireflies keep the ones that went out company.</p>
       </div>
@@ -100,40 +118,98 @@
 
     <section class="ch" id="bahay" data-shot="bahay" aria-labelledby="h-bahay">
       <div class="copy">
-        <p class="label"><span class="num">03</span><span><span lang="tl">Bahay na bato</span>, the stone houses</span></p>
+        <p class="label"><span class="num">03</span><span><span lang="tl">Bahay na bato</span>, the stone houses</span><span class="bay" aria-hidden="true">ᜊᜑᜌ᜔ ᜈ ᜊᜆᜓ</span></p>
         <h2 id="h-bahay" data-words>Stone below, wood above</h2>
         <p>The houses keep their stone feet in the rain and live upstairs, behind sliding windows of capiz shell that turn lamplight soft.</p>
       </div>
       <div class="fg fg--top" data-fg="eave" aria-hidden="true"></div>
+      <div class="fg fg--bottom" data-fg="wall" aria-hidden="true"></div>
     </section>
 
     <section class="ch" id="simbahan" data-shot="simbahan" aria-labelledby="h-simbahan">
       <div class="copy">
-        <p class="label"><span class="num">04</span><span><span lang="tl">Simbahan</span>, the church</span></p>
+        <p class="label"><span class="num">04</span><span><span lang="tl">Simbahan</span>, the church</span><span class="bay" aria-hidden="true">ᜐᜒᜋ᜔ᜊᜑᜈ᜔</span></p>
         <h2 id="h-simbahan" data-words>The church at the top of the town</h2>
         <p>Its doors stay open late. Light from inside reaches halfway down the plaza, and the bell tower is the last thing you lose in the fog.</p>
       </div>
+      <div class="fg fg--bottom" data-fg="churchyard" aria-hidden="true"></div>
     </section>
 
     <section class="ch" id="liwanag" data-shot="liwanag" aria-labelledby="h-liwanag">
       <div class="copy">
-        <p class="label"><span class="num">05</span><span><span lang="tl">Liwanag</span>, the light</span></p>
+        <p class="label"><span class="num">05</span><span><span lang="tl">Liwanag</span>, the light</span><span class="bay" aria-hidden="true">ᜎᜒᜏᜈᜄ᜔</span></p>
         <h2 id="h-liwanag" data-words>Then the parols come on</h2>
         <p>From above the plaza the whole town shows. Star lanterns light up string by string, all the way down the street to the water.</p>
       </div>
+      <p class="vword" aria-hidden="true" data-reveal>Liwanag</p>
+      <div class="fg fg--top fg--hang" data-fg="parol" aria-hidden="true"></div>
+      <div class="fg fg--bottom" data-fg="roof" aria-hidden="true"></div>
+    </section>
+
+    <section class="notes" id="notes" aria-labelledby="h-notes">
+      <div class="sec-head">
+        <p class="label">Field notes</p>
+        <h2 id="h-notes">Three things worth stopping for</h2>
+      </div>
+      <div class="notes-grid">
+        <figure class="note note--big">
+          <div class="note-img"><canvas data-note="bangka" aria-hidden="true"></canvas><p class="note-title">The <span lang="tl">bangka</span></p></div>
+          <figcaption><span>Moored below the sea wall, one lantern lit</span><span class="note-n">01 / 03</span></figcaption>
+        </figure>
+        <figure class="note">
+          <div class="note-img"><canvas data-note="capiz" aria-hidden="true"></canvas><p class="note-title">A capiz window</p></div>
+          <figcaption><span>Shell panes in a timber lattice, lamplight behind</span><span class="note-n">02 / 03</span></figcaption>
+        </figure>
+        <figure class="note">
+          <div class="note-img"><canvas data-note="parols" aria-hidden="true"></canvas><p class="note-title">Parols on the plaza</p></div>
+          <figcaption><span>Strung from post to post, swinging in the wind</span><span class="note-n">03 / 03</span></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="craft" id="craft" aria-labelledby="h-craft">
+      <div class="sec-head sec-head--split">
+        <div>
+          <p class="label">The craft</p>
+          <h2 id="h-craft">Five things the town is made of</h2>
+        </div>
+        <p>Every part of the walk comes from a Filipino craft. The town is imagined; these are not.</p>
+      </div>
+      <ol class="craft-grid">
+        <li><span class="num">01</span><h3>Capiz windows</h3><p>Panes cut from the flat shell of the windowpane oyster, set in a sliding timber frame. They let the light in and keep the glare out.</p><a href="#bahay">Seen in <span lang="tl">Bahay na bato</span></a></li>
+        <li><span class="num">02</span><h3 lang="tl">Bahay na bato</h3><p>A ground floor of stone or brick under an upper storey of wood: a house built to ride out earthquakes and floods.</p><a href="#bahay">Seen in <span lang="tl">Bahay na bato</span></a></li>
+        <li><span class="num">03</span><h3>The parol</h3><p>A star lantern of bamboo strips and paper, hung for a Christmas season that in the Philippines starts in September.</p><a href="#liwanag">Seen in <span lang="tl">Liwanag</span></a></li>
+        <li><span class="num">04</span><h3>The <span lang="tl">bangka</span></h3><p>A narrow hull with bamboo outriggers on both sides, steady enough to fish from on open water.</p><a href="#lawa">Seen in <span lang="tl">Lawa</span></a></li>
+        <li><span class="num">05</span><h3>Votive candles</h3><p>Sold by the bundle outside church doors, and lit for a prayer or for someone missed.</p><a href="#hagdan">Seen in <span lang="tl">Hagdan</span></a></li>
+      </ol>
     </section>
   </main>
 
   <footer class="end">
-        <div>
-          <p class="end-title">Gabi is a design concept by HELIOKI</p>
-          <p>A scroll-driven 3D walk of the kind a heritage town, a resort or a tourism office could put online. One camera, one page, and every surface drawn in code.</p>
-        </div>
-        <div class="end-links">
-          <a href="https://github.com/heliokii" target="_blank" rel="noopener">HELIOKI on GitHub<svg class="i" aria-hidden="true"><use href="#i-out"/></svg></a>
-          <a href="#top">Walk it again</a>
-        </div>
-        <p class="end-note">The town is fictional, inspired by Taal heritage. Not affiliated with any parish or tourism office. The idea of a scroll-driven night walk comes from <a href="https://github.com/MengTo/kage" target="_blank" rel="noopener">Kage by Meng To</a>. No code or art was reused.</p>
+    <p class="end-lede"><span class="pane pane--lg" aria-hidden="true"></span><span>A night walk in five chapters through a town on a volcanic lake. A design concept by HELIOKI, of the kind a heritage town, a resort or a tourism office could put online.</span></p>
+    <div class="end-cols">
+      <nav aria-label="Chapters, again">
+        <p class="end-h">Chapters</p>
+        <a href="#lawa" lang="tl">Lawa</a>
+        <a href="#hagdan" lang="tl">Hagdan</a>
+        <a href="#bahay" lang="tl">Bahay na bato</a>
+        <a href="#simbahan" lang="tl">Simbahan</a>
+        <a href="#liwanag" lang="tl">Liwanag</a>
+      </nav>
+      <nav aria-label="Closer">
+        <p class="end-h">Closer</p>
+        <a href="#notes">Field notes</a>
+        <a href="#craft">The craft</a>
+        <a href="#top">Walk it again</a>
+      </nav>
+      <div>
+        <p class="end-h">Elsewhere</p>
+        <a href="https://github.com/heliokii" target="_blank" rel="noopener">HELIOKI on GitHub<svg class="i" aria-hidden="true"><use href="#i-out"/></svg></a>
+        <a href="https://mengto.github.io/kage/" target="_blank" rel="noopener">Kage by Meng To<svg class="i" aria-hidden="true"><use href="#i-out"/></svg></a>
+      </div>
+    </div>
+    <p class="end-note">The town is fictional, inspired by Taal heritage. Not affiliated with any parish or tourism office. The idea of a scroll-driven night walk comes from <a href="https://github.com/MengTo/kage" target="_blank" rel="noopener">Kage by Meng To</a>. No code or art was reused: every surface, plant and lantern here is drawn in code.</p>
+    <div class="end-bar"><span>© 2026 HELIOKI</span><span class="bay" aria-hidden="true">ᜄᜊᜒ</span><span>Three.js, after Taal, Batangas</span></div>
   </footer>
 
   <script type="module" src="/src/main.js"></script>

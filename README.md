@@ -36,11 +36,13 @@ Off until the visitor presses **Sound** in the top bar. Lake water, crickets, ra
 - `index.html`: the five chapters, nav and footer
 - `src/main.js`: smooth scroll, chapter tracking, menu, sound button, mode choice
 - `src/scene.js`: renderer, post-processing, the frame loop
-- `src/world.js`: everything in the town, built from `layout.js`
-- `src/layout.js`: where things stand, in metres
-- `src/path.js`: camera waypoints and scroll-to-pose math
+- `src/world.js`: everything in the town, built from `layout.js`: lamp light in the fog, wet-street reflections, rain, the steam off the volcano
+- `src/fog.js`: height fog that drifts, patched into three's fog chunks so every material wears it
+- `src/rope.js`: Verlet ropes for the parol strings, so the lanterns swing in the wind (walking faster stirs it)
+- `src/layout.js`: where things stand, in metres, and the counts the page quotes
+- `src/path.js`: camera waypoints, the field-note shots and scroll-to-pose math
 - `src/textures.js`: canvas-painted stone, wood, tiles, capiz, moon
-- `src/foreground.js`: SVG grass, banana leaves, bamboo, eave
+- `src/foreground.js`: the lit SVG near things at each chapter's edge: reeds, banana leaves, candles, walls, bougainvillea, a parol
 - `src/sound.js`: the synthesized soundscape
 - `public/og.jpg`: share preview. Set `og:image` in `index.html` to an absolute URL once the site has a domain.
 

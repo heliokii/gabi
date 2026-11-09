@@ -13,6 +13,13 @@ export const WAYPOINTS = [
   { id: 'simbahan', p: [18, 13, -50],    t: [18, 22, -76],   fov: 46 }, // the church
   { id: 'liwanag',  p: [18, 30, -71],    t: [30, 8, 21],     fov: 48 }, // above the plaza, down the street to the lake
 ];
+/* Field notes: three close looks, drawn once from the live town. `p` is the chapter whose weather they wear. */
+export const NOTES = [
+  { id: 'bangka', p: [-7.5, 4.2, 21], t: [-18, 0.4, 31.5], fov: 36, at: 2 }, // above the mist, so the hull reads
+  { id: 'capiz', p: [19.6, 14.2, -21.2], t: [15.1, 14.9, -23.4], fov: 42, at: 3 },
+  { id: 'parols', p: [18, 12.4, -57], t: [18, 15.6, -69], fov: 48, at: 5 },
+];
+
 const N = WAYPOINTS.length - 1;
 const v3 = (a) => new Vector3(a[0], a[1], a[2]);
 const curveP = new CatmullRomCurve3(WAYPOINTS.map((w) => v3(w.p)), false, 'centripetal');

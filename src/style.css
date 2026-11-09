@@ -108,12 +108,45 @@ html.is-live #gl { opacity: 1; }
 /* ---------- chapters ---------- */
 main { position: relative; z-index: 1; }
 .ch { position: relative; min-height: 160svh; display: grid; align-items: center; padding: 128px var(--gutter); }
-.ch--hero { min-height: 100svh; align-items: center; padding-top: 96px; }
+/* tall enough that the name below never runs into the words above, even on short screens */
+.ch--hero { min-height: max(100svh, 880px); align-items: start; padding-top: 128px; }
+.ch--hero h1 { font-size: clamp(40px, 4.2vw, 60px); }
+.ch--hero .lede { max-width: 30rem; }
+.ch--hero .btn { margin-top: 32px; }
 /* A neutral shade behind the words only, so they read over any frame of the scene. */
 .ch::before { content: ''; position: absolute; inset: 0 35% 0 0; pointer-events: none; background: linear-gradient(90deg, rgb(7 8 13 / 0.72), rgb(7 8 13 / 0.55) 55%, rgb(7 8 13 / 0)); }
 .copy { position: relative; z-index: 2; max-width: 34rem; }
 .label { display: flex; align-items: baseline; gap: 12px; margin: 0 0 16px; font-size: 14px; font-weight: 500; color: var(--text-2); }
 .num { font-variant-numeric: tabular-nums; color: var(--candle); }
+/* Baybayin, the old Tagalog script, as the chapter names' second voice */
+.bay { font-family: 'Noto Sans Tagalog', var(--font-ui); font-weight: 400; }
+.label .bay { font-size: 15px; line-height: 1; color: var(--muted); }
+
+/* ---------- the hero: the name standing in the grass, the chapters counted under it ---------- */
+.mark {
+  position: absolute; z-index: 0; left: var(--gutter); right: var(--gutter); bottom: clamp(72px, 12vh, 128px); margin: 0;
+  display: flex; justify-content: space-between; pointer-events: none; user-select: none;
+  font: 400 clamp(112px, 22vw, 340px)/0.74 var(--font-display); letter-spacing: -0.02em; color: #e7e2d4;
+}
+.bay-v { position: absolute; z-index: 2; top: 136px; right: calc(var(--gutter) + 40px); margin: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; font-size: clamp(36px, 3.6vw, 52px); line-height: 1; color: var(--text-2); }
+.index { position: absolute; z-index: 2; left: var(--gutter); right: var(--gutter); bottom: 24px; display: flex; gap: clamp(24px, 4vw, 56px); }
+.index a { display: grid; gap: 4px; font-size: 13px; font-weight: 500; color: var(--text-2); text-decoration: none; transition: color 160ms var(--ease); }
+.index a span { font: 400 clamp(28px, 2.8vw, 40px)/1 var(--font-display); font-variant-numeric: tabular-nums; color: var(--text); transition: color 160ms var(--ease); }
+.index a:hover { color: var(--text); }
+.index a:hover span { color: var(--candle); }
+
+/* ---------- chapter 1's figures, counted from the town ---------- */
+.ch--lawa { align-content: center; gap: 72px; }
+.stats { position: relative; z-index: 2; margin: 0; max-width: 72rem; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--line); }
+/* a band of shade under the row, so figures read over the moon's path on the water */
+.stats::before { content: ''; position: absolute; z-index: -1; inset: -32px calc(-1 * var(--gutter)) -48px; pointer-events: none; background: linear-gradient(rgb(7 8 13 / 0), rgb(7 8 13 / 0.62) 30%, rgb(7 8 13 / 0.62) 70%, rgb(7 8 13 / 0)); }
+.stats div { display: flex; flex-direction: column-reverse; gap: 8px; padding: 24px 24px 0 0; }
+.stats div + div { padding-left: 24px; border-left: 1px solid var(--line); }
+.stats dd { margin: 0; font: 400 clamp(36px, 3.4vw, 48px)/1 var(--font-display); font-variant-numeric: tabular-nums; color: var(--text); }
+.stats dt { font-size: 13px; color: var(--text-2); }
+
+/* the last chapter's word, standing on its end */
+.vword { position: absolute; z-index: 2; right: clamp(56px, 7vw, 120px); top: 50%; translate: 0 -50%; margin: 0; writing-mode: vertical-rl; pointer-events: none; font: 400 clamp(72px, 9vw, 150px)/1 var(--font-display); color: var(--text); opacity: 0.9; }
 h1, h2 { margin: 0; font-family: var(--font-display); font-weight: 400; text-wrap: balance; }
 h1 { font-size: clamp(40px, 6.2vw, 80px); line-height: 1.03; letter-spacing: -0.025em; }
 h2 { font-size: clamp(34px, 4.6vw, 60px); line-height: 1.06; letter-spacing: -0.02em; }
@@ -125,23 +158,59 @@ h2 { font-size: clamp(34px, 4.6vw, 60px); line-height: 1.06; letter-spacing: -0.
 
 /* ---------- foreground silhouettes ---------- */
 .fg { position: absolute; z-index: 1; pointer-events: none; color: var(--silhouette); fill: var(--silhouette); }
-.fg svg { display: block; width: 100%; height: 100%; }
-/* With the live scene, each chapter's silhouettes hold to the screen while it is the shot, as near things do. */
+.fg svg { display: block; width: 100%; height: 100%; transform-origin: 50% 100%; }
+.fg--hang svg { transform-origin: 62.5% 0; } /* the parol swings from its string */
+/* With the live scene, each chapter's near things hold to the screen while it is the shot, as near things do. */
 html:not(.is-static) .fg { position: fixed; }
-.fg--bottom { left: 0; right: 0; bottom: 0; height: 30vh; }
+.fg--bottom { left: 0; right: 0; bottom: 0; height: 34vh; }
 .fg--full { inset: 0; top: auto; height: 100svh; }
 .fg--top { left: 0; right: 0; top: 0; height: 14vh; }
+.fg--top.fg--hang { height: auto; aspect-ratio: 16 / 7; } /* the whole drawing, so its glow is never cropped */
+
+/* ---------- after the walk: field notes and the craft ---------- */
+.notes, .craft { position: relative; z-index: 2; padding: 128px var(--gutter); }
+.notes { background: linear-gradient(rgb(11 13 20 / 0), rgb(11 13 20 / 0.84) 240px); }
+.craft { padding-top: 96px; background: var(--bg); }
+.sec-head { max-width: 40rem; margin-bottom: 48px; }
+.sec-head--split { max-width: none; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 28rem); gap: 24px 64px; align-items: end; }
+.sec-head--split > p { margin: 0; font-size: 17px; line-height: 1.6; color: var(--text-2); text-wrap: pretty; }
+
+.notes-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 24px; }
+.note { margin: 0; display: grid; grid-template-rows: 1fr auto; gap: 12px; }
+.note--big { grid-row: span 2; }
+.note-img { position: relative; overflow: hidden; min-height: 220px; aspect-ratio: 4 / 3; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+.note--big .note-img { aspect-ratio: auto; height: 100%; }
+.note-img::after { content: ''; position: absolute; inset: 55% 0 0; background: linear-gradient(rgb(4 5 10 / 0), rgb(4 5 10 / 0.72)); }
+.note canvas { display: block; width: 100%; height: 100%; object-fit: cover; }
+.note-title { position: absolute; z-index: 1; left: 20px; bottom: 16px; margin: 0; font: 400 clamp(22px, 2vw, 30px)/1.1 var(--font-display); color: var(--text); }
+.note figcaption { display: flex; justify-content: space-between; gap: 16px; font-size: 14px; color: var(--text-2); }
+.note-n { flex: none; font-variant-numeric: tabular-nums; color: var(--muted); }
+html.is-static:not(.is-live) .note-img { aspect-ratio: auto; height: auto; min-height: 120px; }
+
+.craft-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+.craft-grid li { grid-column: span 2; min-height: 240px; display: flex; flex-direction: column; gap: 12px; padding: 28px 28px 24px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.craft-grid li:nth-child(-n + 2) { grid-column: span 3; }
+.craft-grid .num { font-size: 13px; }
+.craft-grid h3 { margin: 0; font: 400 clamp(24px, 2.2vw, 32px)/1.15 var(--font-display); }
+.craft-grid p { margin: 0; max-width: 28rem; font-size: 15px; line-height: 1.6; color: var(--text-2); }
+.craft-grid a { margin-top: auto; padding-top: 12px; font-size: 13px; color: var(--muted); text-decoration: none; transition: color 160ms var(--ease); }
+.craft-grid a:hover { color: var(--text); }
 
 /* ---------- the end ---------- */
-.end { position: relative; z-index: 2; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px 48px; padding: 48px var(--gutter) 40px; border-top: 1px solid var(--line); background: var(--bg); }
-.end p { margin: 0; max-width: 34rem; color: var(--text-2); font-size: 15px; }
-.end .end-title { margin-bottom: 8px; color: var(--text); font: 400 24px/1.25 var(--font-display); }
-.end-links { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
-.end-links a { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 500; text-decoration: none; color: var(--text); }
-.end-links a:hover { color: var(--candle); }
-.end .end-note { grid-column: 1 / -1; max-width: 44rem; font-size: 13px; line-height: 1.6; color: var(--muted); }
-.end-note a { text-underline-offset: 3px; }
-@media (max-width: 640px) { .end { grid-template-columns: 1fr; } }
+.end { position: relative; z-index: 2; display: grid; gap: 56px; padding: 96px var(--gutter) 32px; border-top: 1px solid var(--line); background: var(--bg); }
+.end p { margin: 0; }
+.end-lede { display: flex; align-items: flex-start; gap: 24px; max-width: 56rem; font: 400 clamp(24px, 2.6vw, 36px)/1.3 var(--font-display); color: var(--text); text-wrap: pretty; }
+.pane--lg { flex: none; width: 24px; height: 28px; margin-top: 8px; border-radius: 3px; }
+.end-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; padding-top: 40px; border-top: 1px solid var(--line); }
+.end-cols > * { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.end-cols > * + * { padding-left: 32px; border-left: 1px solid var(--line); }
+.end .end-h { margin-bottom: 4px; font-size: 13px; color: var(--muted); }
+.end-cols a { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; color: var(--text-2); text-decoration: none; transition: color 160ms var(--ease); }
+.end-cols a:hover { color: var(--text); }
+.end .end-note { max-width: 44rem; font-size: 13px; line-height: 1.6; color: var(--muted); }
+.end-note a { color: var(--text-2); text-underline-offset: 3px; }
+.end-bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-top: 24px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+.end-bar .bay { font-size: 18px; color: var(--text-2); }
 
 /*
  * ---------- still mode. Reduced motion: the scene as held shots, silhouettes in the page flow.
@@ -154,11 +223,32 @@ html.is-static:not(.is-live) .ch:not(.ch--hero) { background: linear-gradient(rg
 }
 
 /* ---------- phones: keep words clear of the rail, keep near things near ---------- */
+@media (max-width: 860px) {
+  .notes-grid { grid-template-columns: 1fr; }
+  .note--big { grid-row: auto; }
+  .note--big .note-img { aspect-ratio: 4 / 3; height: auto; }
+  .sec-head--split { grid-template-columns: 1fr; }
+  .craft-grid { grid-template-columns: 1fr; }
+  .craft-grid li, .craft-grid li:nth-child(-n + 2) { grid-column: auto; min-height: 0; }
+}
 @media (max-width: 640px) {
   .copy { padding-right: 28px; }
   .ch::before { inset: 0; background: linear-gradient(90deg, rgb(7 8 13 / 0.72), rgb(7 8 13 / 0.4)); }
+  .ch--hero { min-height: max(100svh, 760px); padding-top: 112px; }
+  .mark { bottom: 132px; font-size: 30vw; }
+  .bay-v { top: 112px; right: 44px; font-size: 28px; gap: 8px; }
+  .index { gap: 20px; }
+  .index a { font-size: 0; gap: 0; } /* numerals only */
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stats div:nth-child(3) { padding-left: 0; border-left: 0; }
+  .vword { display: none; }
+  .notes, .craft { padding-top: 96px; padding-bottom: 96px; }
+  .end-cols { grid-template-columns: 1fr; }
+  .end-cols > * + * { padding-left: 0; border-left: 0; }
+  .end-bar { flex-wrap: wrap; }
 }
 @media (max-aspect-ratio: 3/4) {
   .fg--full { height: 55svh; }
-  .fg--bottom { height: 22vh; }
+  .fg--bottom { height: 24vh; }
+
 }

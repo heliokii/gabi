@@ -3,6 +3,8 @@ import { Reflector } from 'three/examples/jsm/objects/Reflector.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import * as L from './layout.js';
 import * as T from './textures.js';
+import { FOG_UNIFORMS, HEIGHT_FOG, patchFog } from './fog.js';
+import { rope, hang, step } from './rope.js';
 
 export const FOG_COLOR = '#121826';
 export const FOG_DENSITY = 0.0085;
@@ -68,7 +70,92 @@ function glowPoints(list, map) {
   return pts;
 }
 
+/* ---------- light in the air and on the ground ---------- */
+const additive = { blending: THREE.AdditiveBlending, transparent: true, depthWrite: false };
+
+/* A cone of lamplight in the fog: bright down its middle and near the lamp, gone at its edges. */
+function coneMaterial(color) {
+  return new THREE.ShaderMaterial({
+    ...additive,
+    uniforms: { uColor: { value: color }, uAmount: { value: 1 } },
+    vertexShader: /* glsl */`
+      varying vec3 vN; varying vec3 vV; varying float vH;
+      void main() {
+        vH = uv.y;
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz);
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: /* glsl */`
+      uniform vec3 uColor; uniform float uAmount; varying vec3 vN; varying vec3 vV; varying float vH;
+      void main() { gl_FragColor = vec4(uColor * pow(abs(dot(vN, vV)), 2.0) * pow(clamp(vH, 0.0, 1.0), 1.6) * uAmount, 1.0); }`,
+  });
+}
+
+/* A soft pool of light on the ground; `long` stretches it away from its source along v. */
+function poolMaterial(color, long = false) {
+  return new THREE.ShaderMaterial({
+    ...additive,
+    uniforms: { uColor: { value: color }, uAmount: { value: 1 } },
+    vertexShader: /* glsl */`varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: /* glsl */`
+      uniform vec3 uColor; uniform float uAmount; varying vec2 vUv;
+      void main() {
+        ${long
+          ? 'float a = pow(max(1.0 - abs(vUv.x - 0.5) * 2.0, 0.0), 1.5) * pow(clamp(vUv.y, 0.0, 1.0), 1.8);'
+          : 'float a = pow(max(1.0 - length(vUv - 0.5) * 2.0, 0.0), 2.2);'}
+        gl_FragColor = vec4(uColor * a * uAmount, 1.0);
+      }`,
+  });
+}
+
+/* Lamps smeared on wet stone: one strip per lamp, lying on the ground and running toward the eye. */
+function streaks(centers, color) {
+  const pos = [], ctr = [], idx = [];
+  centers.forEach((c, i) => {
+    for (const [x, y] of [[-1, 0], [1, 0], [1, 1], [-1, 1]]) { pos.push(x, y, 0); ctr.push(...c); }
+    const k = i * 4;
+    idx.push(k, k + 1, k + 2, k, k + 2, k + 3);
+  });
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('aCenter', new THREE.Float32BufferAttribute(ctr, 3));
+  g.setIndex(idx);
+  const m = new THREE.ShaderMaterial({
+    ...additive,
+    side: THREE.DoubleSide,
+    uniforms: { uColor: { value: color }, uAmount: { value: 0 }, uTime: { value: 0 } },
+    vertexShader: /* glsl */`
+      attribute vec3 aCenter; varying vec2 vC;
+      void main() {
+        vec2 d = cameraPosition.xz - aCenter.xz;
+        float len = length(d);
+        vec2 dir = d / max(len, 1e-3), side = vec2(-dir.y, dir.x);
+        vec2 xz = aCenter.xz + side * position.x * 0.35 + dir * position.y * min(9.0, len * 0.85);
+        vC = position.xy;
+        gl_Position = projectionMatrix * viewMatrix * vec4(xz.x, aCenter.y, xz.y, 1.0);
+      }`,
+    fragmentShader: /* glsl */`
+      uniform vec3 uColor; uniform float uAmount; uniform float uTime; varying vec2 vC;
+      void main() {
+        float across = pow(max(1.0 - abs(vC.x), 0.0), 2.0);
+        float along = pow(max(1.0 - vC.y, 0.0), 1.4) * smoothstep(0.0, 0.06, vC.y);
+        float ripple = 0.75 + 0.25 * sin(vC.y * 46.0 - uTime * 5.0);
+        gl_FragColor = vec4(uColor * across * along * ripple * uAmount, 1.0);
+      }`,
+  });
+  const mesh = new THREE.Mesh(g, m);
+  mesh.frustumCulled = false;
+  return mesh;
+}
+
 /* ---------- the lake: a real reflection, rippled in the shader ---------- */
+/* One table of ripples, [x freq, z freq, speed, height]. The water shader draws them; the boat rides them. */
+const WAVES = [[0.55, 0, 0.9, 1], [0, 0.8, -0.7, 0.8], [1.9, -1.9, 1.6, 0.35], [1.3, 2.9, 2.3, 0.2], [4.1, -3.3, 3.1, 0.12]];
+const f3 = (v) => v.toFixed(3);
+const WAVES_GLSL = WAVES.map(([a, b, w, k]) => `${f3(k)} * sin(p.x * ${f3(a)} + p.y * ${f3(b)} + uTime * ${f3(w)})`).join(' + ');
+export const wavesAt = (x, z, t) => WAVES.reduce((s, [a, b, w, k]) => s + k * Math.sin(x * a + z * b + t * w), 0);
+
 const WaterShader = {
   name: 'GabiWater',
   uniforms: {
@@ -93,11 +180,8 @@ const WaterShader = {
     uniform vec3 uFogColor; uniform float uFogDensity; uniform vec3 uMoonDir; uniform vec3 uMoonColor;
     varying vec4 vUv; varying vec3 vWorld;
     #include <logdepthbuf_pars_fragment>
-    float waves(vec2 p) {
-      return sin(p.x * 0.55 + uTime * 0.9) + 0.8 * sin(p.y * 0.8 - uTime * 0.7)
-           + 0.35 * sin((p.x - p.y) * 1.9 + uTime * 1.6) + 0.2 * sin(p.x * 1.3 + p.y * 2.9 + uTime * 2.3)
-           + 0.12 * sin(p.x * 4.1 - p.y * 3.3 + uTime * 3.1);
-    }
+    ${HEIGHT_FOG}
+    float waves(vec2 p) { return ${WAVES_GLSL}; }
     void main() {
       #include <logdepthbuf_fragment>
       vec2 p = vWorld.xz;
@@ -116,6 +200,7 @@ const WaterShader = {
       col += uMoonColor * (pow(m, 900.0) * 6.0 + pow(m, 90.0) * 0.12);
       float d = distance(vWorld, cameraPosition);
       col = mix(col, uFogColor, 1.0 - exp(-uFogDensity * uFogDensity * d * d));
+      col = mix(col, fogMist, heightFog(cameraPosition, vWorld));
       gl_FragColor = vec4(col, 1.0);
       #include <tonemapping_fragment>
       #include <colorspace_fragment>
@@ -142,6 +227,7 @@ const SKY = {
 
 export function buildWorld(scene, { reflectScale = 0.5 } = {}) {
   const updates = [];
+  let dt = 0, lastT = 0; // seconds since the last update; 0 while the town is held still
   const glows = [];
   const add = (o) => { scene.add(o); return o; };
   const glowMap = T.glow();
@@ -157,19 +243,54 @@ export function buildWorld(scene, { reflectScale = 0.5 } = {}) {
   sky.renderOrder = -2;
 
   const r = T.rng(41);
-  const starPos = [];
+  const starPos = [], starPhase = [];
   while (starPos.length < 1300 * 3) {
     const v = new THREE.Vector3(r() * 2 - 1, r(), r() * 2 - 1);
     if (v.lengthSq() > 1 || v.y < 0.06) continue;
     v.normalize().multiplyScalar(820);
     starPos.push(v.x, v.y, v.z);
+    starPhase.push(r());
   }
-  const stars = add(new THREE.Points(
-    new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3)),
-    new THREE.PointsMaterial({ color: '#c9d2e6', size: 1.4, sizeAttenuation: false, fog: false, transparent: true, opacity: 0.75, depthWrite: false }),
-  ));
-  stars.renderOrder = -1;
-  updates.push((t, p, cam) => { sky.position.copy(cam.position); stars.position.copy(cam.position); });
+  const starGeo = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
+  starGeo.setAttribute('aPhase', new THREE.Float32BufferAttribute(starPhase, 1));
+  const starMat = new THREE.ShaderMaterial({ // each star breathes on its own clock, a few brighter than the rest
+    ...additive,
+    uniforms: { uTime: { value: 0 }, uPx: { value: 1 } },
+    vertexShader: /* glsl */`
+      attribute float aPhase; uniform float uTime; uniform float uPx; varying float vB;
+      void main() {
+        vB = (0.6 + 0.4 * sin(uTime * (0.6 + aPhase * 2.2) + aPhase * 40.0)) * (0.5 + aPhase * 0.7);
+        gl_PointSize = (1.3 + aPhase * aPhase * 1.8) * uPx;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }`,
+    fragmentShader: /* glsl */`
+      varying float vB;
+      void main() { float a = 1.0 - smoothstep(0.1, 0.5, length(gl_PointCoord - 0.5)); gl_FragColor = vec4(vec3(0.79, 0.82, 0.9) * vB * a, 1.0); }`,
+  });
+  const stars = add(new THREE.Points(starGeo, starMat));
+  stars.renderOrder = -1.5;
+  stars.frustumCulled = false;
+
+  /* a few long clouds drifting across the moon's side of the sky */
+  const sky2 = add(new THREE.Group());
+  {
+    const tex = T.mist(), rc = T.rng(97);
+    const base = Math.atan2(L.MOON.z, L.MOON.x);
+    for (let i = 0; i < 6; i++) {
+      const a = base + (rc() - 0.5) * 1.6, h = 70 + rc() * 120;
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color: '#5a6684', transparent: true, opacity: 0.32 + rc() * 0.2, depthWrite: false, fog: false }));
+      s.position.set(Math.cos(a) * 640, h, Math.sin(a) * 640);
+      s.scale.set(260 + rc() * 200, 46 + rc() * 30, 1);
+      s.renderOrder = -1;
+      sky2.add(s);
+    }
+  }
+  updates.push((t, p, cam) => {
+    sky.position.copy(cam.position); stars.position.copy(cam.position);
+    sky2.position.copy(cam.position);
+    sky2.rotation.y = t * 0.0035;
+    starMat.uniforms.uTime.value = t;
+  });
 
   { // far hills: one ring of ridges around the whole lake basin
     const pts = [], N = 220;
@@ -193,14 +314,31 @@ export function buildWorld(scene, { reflectScale = 0.5 } = {}) {
     const prof = [[46, -1], [41, 2], [31, 8.5], [19, 17], [14.5, 20], [12, 19.2], [8, 15], [0, 14]].map(([x, y]) => new THREE.Vector2(x, y));
     const g = new THREE.LatheGeometry(prof, 72);
     const a = g.attributes.position;
-    for (let i = 0; i < a.count; i++) { // gullies down the flanks
-      const x = a.getX(i), z = a.getZ(i), ang = Math.atan2(z, x);
-      const k = 1 + 0.05 * Math.sin(ang * 9) + 0.03 * Math.sin(ang * 23 + 1.3);
+    for (let i = 0; i < a.count; i++) { // gullies down the flanks, ridges between them
+      const x = a.getX(i), y = a.getY(i), z = a.getZ(i), ang = Math.atan2(z, x);
+      const k = 1 + 0.05 * Math.sin(ang * 9) + 0.03 * Math.sin(ang * 23 + 1.3) + 0.015 * Math.sin(ang * 61 + y);
       a.setX(i, x * k); a.setZ(i, z * k);
+      if (y > 1 && y < 19) a.setY(i, y + 0.5 * Math.sin(ang * 17 + y * 0.7) * Math.sin(y * 0.9));
     }
     g.computeVertexNormals();
-    const v = add(new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: '#1d2028', roughness: 1, flatShading: true })));
+    const v = add(new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: '#171a21', roughness: 1, flatShading: true })));
     v.position.set(L.VOLCANO.x, 0, L.VOLCANO.z);
+
+    // Taal still breathes: a slow plume of steam off the crater, lit by the moon
+    const tex = T.mist(), puffs = [], rv = T.rng(13);
+    for (let i = 0; i < 10; i++) {
+      const s = add(new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color: '#8a96ac', transparent: true, depthWrite: false, opacity: 0 })));
+      s.userData.phase = i / 10 + rv() * 0.05;
+      puffs.push(s);
+    }
+    updates.push((t) => {
+      for (const s of puffs) {
+        const f = (t * 0.018 + s.userData.phase) % 1;
+        s.position.set(L.VOLCANO.x + 3 + f * 14, L.VOLCANO.h - 1 + f * 30, L.VOLCANO.z - f * 4);
+        s.scale.set(10 + f * 46, 7 + f * 22, 1);
+        s.material.opacity = Math.sin(Math.PI * f) * 0.22;
+      }
+    });
   }
   const moon = add(new THREE.Mesh(new THREE.SphereGeometry(L.MOON.r, 48, 24),
     new THREE.MeshBasicMaterial({ map: T.moon(), color: hdr('#fff3dc', 1.7), fog: false })));
@@ -208,7 +346,7 @@ export function buildWorld(scene, { reflectScale = 0.5 } = {}) {
   moon.layers.set(1); // the main camera sees it; the water's mirror does not, so the shader draws a moon path instead
 
   /* ---------- lights ---------- */
-  add(new THREE.HemisphereLight('#2c3856', '#0d0b09', 1.1));
+  add(new THREE.HemisphereLight('#2c3856', '#0b0c10', 1.1));
   const moonLight = add(new THREE.DirectionalLight('#a8bce4', 1.1));
   moonLight.position.copy(moonDir).multiplyScalar(100);
   const point = (hex, i, d, x, y, z) => { const l = new THREE.PointLight(hex, i, d, 2); l.position.set(x, y, z); return add(l); };
@@ -220,17 +358,22 @@ export function buildWorld(scene, { reflectScale = 0.5 } = {}) {
   water.rotation.x = -Math.PI / 2;
   water.position.set(L.BANK_X - 700, 0, 0);
   water.material.uniforms.uMoonDir.value.copy(moonDir);
+  Object.assign(water.material.uniforms, FOG_UNIFORMS); // Reflector clones uniforms; share the live ones back
   add(water);
   updates.push((t) => { water.material.uniforms.uTime.value = t; });
 
   /* ---------- land: shore strip, terrace, stair ---------- */
   const stoneTex = T.stone();
   const coral = T.stone({ base: [150, 138, 118], seed: 9, rows: 10 });
-  const mat = (map, x, y, extra = {}) => new THREE.MeshStandardMaterial({ map: rep(map, x, y), roughness: 0.95, ...extra });
+  const mat = (map, x, y, extra = {}) => { const t = rep(map, x, y); return new THREE.MeshStandardMaterial({ map: t, bumpMap: t, bumpScale: 2.5, roughness: 0.95, ...extra }); };
   const earth = new THREE.MeshStandardMaterial({ color: '#11150f', roughness: 1 });
   box(696, 3.6, 776, earth, L.BANK_X + 348, L.LOW_Y - 1.8, 372);
   box(8, 3.7, 76, mat(stoneTex, 2, 18), L.BANK_X + 4, L.LOW_Y - 1.75, 22); // the sea wall promenade
   box(86, 13, 124, mat(stoneTex, 22, 6), L.BANK_X + 43, L.PLATEAU_Y - 6.5, -78);
+
+  /* wind: a breeze that gusts, plus a push when the walk speeds up. Palms, parols and rain all feel it. */
+  const wind = new THREE.Vector3(), windDir = new THREE.Vector3(0.35, 0, 1).normalize();
+  const windU = { uTime: { value: 0 }, uWind: { value: new THREE.Vector3() } };
 
   /* coconut palms on the shore, kept clear of the camera's path */
   {
@@ -242,9 +385,11 @@ export function buildWorld(scene, { reflectScale = 0.5 } = {}) {
         const t0 = i / n, t1 = (i + 1.4) / n, w = 0.25 + 1.0 * Math.sin(Math.PI * Math.min(1, t0 * 1.15));
         for (const s of [-1, 1]) v.push(0, t0 * len, 0, 0, Math.min(t1, 1) * len, 0, s * w, t0 * len + 0.5, 0);
       }
-      for (let i = 0; i < v.length; i += 3) { const y = v[i + 1]; v[i + 2] = -0.18 * y * y; }
+      const sway = [];
+      for (let i = 0; i < v.length; i += 3) { const y = v[i + 1]; v[i + 2] = -0.18 * y * y; sway.push(y / len); }
       const g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.Float32BufferAttribute(v, 3));
+      g.setAttribute('aSway', new THREE.Float32BufferAttribute(sway, 1)); // 0 at the crown, 1 at the tip
       g.computeVertexNormals();
       return g;
     })();
@@ -263,7 +408,16 @@ export function buildWorld(scene, { reflectScale = 0.5 } = {}) {
       }
     }
     add(new THREE.Mesh(mergeGeometries(trunks), new THREE.MeshStandardMaterial({ color: '#1d1712', roughness: 1 })));
-    add(new THREE.Mesh(mergeGeometries(fronds), new THREE.MeshStandardMaterial({ color: '#0f160e', roughness: 1, side: THREE.DoubleSide })));
+    const frondMat = new THREE.MeshStandardMaterial({ color: '#0f160e', roughness: 1, side: THREE.DoubleSide });
+    frondMat.onBeforeCompile = (shader) => { // tips bend downwind and flutter; the crown holds
+      Object.assign(shader.uniforms, windU);
+      shader.vertexShader = 'attribute float aSway; uniform float uTime; uniform vec3 uWind;\n' + shader.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+        float sw = aSway * aSway;
+        transformed += uWind * sw * (0.65 + 0.35 * sin(uTime * 1.9 + position.x * 0.5 + position.z * 0.3));
+        transformed.y -= length(uWind) * sw * 0.25;`);
+    };
+    frondMat.customProgramCacheKey = () => 'gabi-frond';
+    add(new THREE.Mesh(mergeGeometries(fronds), frondMat));
   }
 
   const S = L.STAIR;
@@ -287,10 +441,10 @@ export function buildWorld(scene, { reflectScale = 0.5 } = {}) {
   }
 
   /* candles on every third step, both sides */
-  const wax = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.06, 0.07, 0.3, 8), new THREE.MeshStandardMaterial({ color: '#d8ccb4', roughness: 0.6 }), 24);
+  const wax = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.06, 0.07, 0.3, 8), new THREE.MeshStandardMaterial({ color: '#d8ccb4', roughness: 0.6 }), L.CANDLE_COUNT);
   const flames = [];
   let k = 0;
-  for (let i = 1; i < S.steps; i += 3) {
+  for (const i of L.CANDLE_STEPS) {
     const s = (i + 0.5) * L.stairRun;
     const y = S.yBottom + 0.9 + s * ((S.yTop - S.yBottom) / run);
     for (const x of cheekX) {
@@ -311,7 +465,9 @@ export function buildWorld(scene, { reflectScale = 0.5 } = {}) {
   const woodMat = mat(T.wood(), 3, 1, { roughness: 0.85 });
   const roofMat = mat(T.tiles(), 3, 2, { roughness: 0.8 });
   const capizTex = T.capiz();
-  const litMat = new THREE.MeshBasicMaterial({ map: capizTex, color: hdr('#ffcf93', 1.9) });
+  // three lamps' worth of lit windows, each breathing on its own, so the street looks lived in
+  const lit = [0, 1, 2].map(() => new THREE.MeshBasicMaterial({ map: capizTex, color: hdr('#ffcf93', 1.9) }));
+  updates.push((t) => lit.forEach((m, k) => m.color.copy(hdr('#ffcf93', 1.9 * (0.9 + 0.1 * Math.sin(t * (1.1 + k * 0.7) + k * 2) * Math.sin(t * 3.3 + k))))));
   const darkMat = new THREE.MeshStandardMaterial({ map: capizTex, color: '#4d4740', roughness: 0.6 });
   const doorMat = new THREE.MeshStandardMaterial({ color: '#1a120c', roughness: 0.9 });
   const roofGeo = new THREE.ConeGeometry(Math.SQRT1_2, 1, 4, 1).rotateY(Math.PI / 4);
@@ -331,7 +487,7 @@ export function buildWorld(scene, { reflectScale = 0.5 } = {}) {
     add(roof);
     const upperFace = face + toStreet * (H.overhang + 0.02);
     for (const dz of [-1.9, 0, 1.9]) {
-      const w = new THREE.Mesh(winGeo, rh() < 0.62 ? litMat : darkMat);
+      const w = new THREE.Mesh(winGeo, rh() < 0.62 ? lit[Math.floor(rh() * 3)] : darkMat);
       w.position.set(upperFace, L.PLATEAU_Y + H.ground + H.upper / 2, cz + dz);
       w.rotation.y = toStreet * Math.PI / 2;
       add(w);
@@ -355,7 +511,21 @@ export function buildWorld(scene, { reflectScale = 0.5 } = {}) {
   const iron = new THREE.MeshStandardMaterial({ color: '#141414', roughness: 0.6, metalness: 0.4 });
   const postGeo = new THREE.CylinderGeometry(0.07, 0.09, 4.2, 8);
   const lamps = [];
-  for (const [x, z] of [[15.4, -30], [20.6, -41], [15.4, -52], [20.6, -62], [9.5, -70], [26.5, -70]]) {
+  const LAMPS = [[15.4, -30], [20.6, -41], [15.4, -52], [20.6, -62], [9.5, -70], [26.5, -70]];
+  const coneGeo = new THREE.CylinderGeometry(0.12, 2.3, 4.1, 24, 1, true);
+  const coneMat = coneMaterial(hdr('#ff9c4f', 0.09));
+  const poolGeo = new THREE.PlaneGeometry(5.6, 5.6).rotateX(-Math.PI / 2);
+  const poolMat = poolMaterial(hdr('#ffa458', 0.5));
+  for (const [x, z] of LAMPS) {
+    const c = new THREE.Mesh(coneGeo, coneMat); c.position.set(x, L.PLATEAU_Y + 4.15 - 2.05, z); add(c);
+    const pool = new THREE.Mesh(poolGeo, poolMat); pool.position.set(x, L.PLATEAU_Y + 0.03, z); add(pool);
+  }
+  const wet = add(streaks(LAMPS.map(([x, z]) => [x, L.PLATEAU_Y + 0.04, z]), hdr('#ffb066', 0.9)));
+  updates.push((t, p) => {
+    wet.material.uniforms.uTime.value = t;
+    wet.material.uniforms.uAmount.value = Math.max(on(p, 3, 1.2), 0.35 * on(p, 4, 1));
+  });
+  for (const [x, z] of LAMPS) {
     const post = new THREE.Mesh(postGeo, iron);
     post.position.set(x, L.PLATEAU_Y + 2.1, z);
     add(post);
@@ -416,6 +586,13 @@ export function buildWorld(scene, { reflectScale = 0.5 } = {}) {
     box(0.14, 2.2, 0.14, iron, tx, L.PLATEAU_Y + 30.4, tz);
     box(1, 0.14, 0.14, iron, tx, L.PLATEAU_Y + 30.9, tz);
     addGlow([{ p: [L.STREET_X, L.PLATEAU_Y + 3.6, -74.5], size: 9, color: hdr('#ff9b4f', 0.25) }]);
+    // the open doors throw a long warm spill down the plaza, and a glow into the air in front of them
+    const spill = new THREE.Mesh(new THREE.PlaneGeometry(6, 16).rotateX(-Math.PI / 2), poolMaterial(hdr('#ffa458', 0.55), true));
+    spill.position.set(L.STREET_X, L.PLATEAU_Y + 0.03, -76 + 8); // uv.y runs toward -z, so the bright end meets the door
+    add(spill);
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 4.2, 7, 24, 1, true).rotateX(-Math.PI / 2), coneMaterial(hdr('#ff9b4f', 0.06)));
+    shaft.position.set(L.STREET_X, L.PLATEAU_Y + 3.2, -72.4);
+    add(shaft);
     point('#ffa358', 60, 26, L.STREET_X, L.PLATEAU_Y + 3, -71);
   }
 
@@ -427,43 +604,51 @@ export function buildWorld(scene, { reflectScale = 0.5 } = {}) {
       i ? star.lineTo(Math.cos(a) * rad, Math.sin(a) * rad) : star.moveTo(Math.cos(a) * rad, Math.sin(a) * rad);
     }
     const geo = new THREE.ExtrudeGeometry(star, { depth: 0.1, bevelEnabled: false }).center();
-    const parols = [];
-    const strings = [];
-    const hang = (ax, bx, y, z, n, sag) => {
-      const line = [];
-      for (let i = 0; i <= 12; i++) { const u = i / 12; line.push(ax + (bx - ax) * u, y - sag * 4 * u * (1 - u), z); }
-      strings.push(line);
-      for (let i = 1; i <= n; i++) {
-        const u = i / (n + 1);
-        parols.push(new THREE.Vector3(ax + (bx - ax) * u, y - sag * 4 * u * (1 - u) - 0.5, z));
-      }
-    };
-    const upperY = L.PLATEAU_Y + H.ground + H.upper - 0.2;
-    for (let i = 0; i < 6; i++) hang(L.STREET_X - 2.9, L.STREET_X + 2.9, upperY, -23 - i * 7.2, 3, 0.5);
-    for (const z of [-66.5, -71.5]) hang(9.5, 26.5, L.PLATEAU_Y + 5.4, z, 5, 0.8);
+    // each string is a rope; each parol hangs half a metre below it on its own cord, so it swings
+    const ropes = L.PAROL_STRINGS.map((d) => {
+      const r = rope([d.x0, d.y, d.z], [d.x1, d.y, d.z], 12, d.sag);
+      const nodes = [], weights = [];
+      for (let i = 1; i <= d.n; i++) { const node = Math.round((12 * i) / (d.n + 1)); nodes.push(node); weights.push(hang(r, node, 0.5, 3)); }
+      for (let k = 0; k < 240; k++) step(r, 1 / 60); // settle before the first frame
+      return { r, nodes, weights };
+    });
+    const parols = ropes.flatMap(({ r, nodes, weights }) => weights.map((w, i) => ({ r, w, node: nodes[i] })));
     const lineMat = new THREE.LineBasicMaterial({ color: '#0c0c0c' });
-    for (const s of strings) add(new THREE.Line(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(s, 3)), lineMat));
+    const strings = ropes.map(({ r }) => add(new THREE.Line(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(r.pos.slice(0, 13 * 3), 3)), lineMat)));
+    const cords = add(new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(parols.length * 6), 3)), lineMat));
+    cords.frustumCulled = false;
+    strings.forEach((l) => { l.frustumCulled = false; });
     for (const x of [9.5, 26.5]) box(0.1, 5.4, 0.1, iron, x, L.PLATEAU_Y + 2.7, -69);
 
+    const at = (r, i, v) => v.set(r.pos[i * 3], r.pos[i * 3 + 1], r.pos[i * 3 + 2]);
     const mesh = add(new THREE.InstancedMesh(geo, new THREE.MeshBasicMaterial({ color: '#ffffff' }), parols.length));
+    mesh.frustumCulled = false;
     const hues = ['#f2a03d', '#e4573d', '#f3e2bf', '#f2a03d', '#d94a3a'].map((h) => new THREE.Color(h));
     // they come on from the plaza back down the street, the way the camera sees them
-    const order = parols.map((p) => 4.15 + 0.7 * (p.z + 72) / 50);
-    const glow = addGlow(parols.map((p, i) => ({ p: p.toArray(), size: 2.4, color: hues[i % hues.length].clone().multiplyScalar(0.5) })));
-    const glowCol = glow.geometry.attributes.aColor;
-    const q = new THREE.Quaternion(), e = new THREE.Euler(), one = new THREE.Vector3(1, 1, 1), c = new THREE.Color();
+    const order = parols.map(({ r, w }) => 4.15 + 0.7 * (r.pos[w * 3 + 2] + 72) / 50);
+    const glow = addGlow(parols.map(({ r, w }, i) => ({ p: r.pos.slice(w * 3, w * 3 + 3), size: 2.4, color: hues[i % hues.length].clone().multiplyScalar(0.5) })));
+    const glowCol = glow.geometry.attributes.aColor, glowPos = glow.geometry.attributes.position, cordPos = cords.geometry.attributes.position;
+    const q = new THREE.Quaternion(), twist = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), Y = new THREE.Vector3(0, 1, 0);
+    const one = new THREE.Vector3(1, 1, 1), c = new THREE.Color(), a = new THREE.Vector3(), b = new THREE.Vector3();
     updates.push((t, p) => {
-      parols.forEach((pos, i) => {
+      if (dt > 0) for (const { r } of ropes) step(r, dt, [wind.x, 0, wind.z]);
+      ropes.forEach(({ r }, k) => { strings[k].geometry.attributes.position.array.set(r.pos.slice(0, 13 * 3)); strings[k].geometry.attributes.position.needsUpdate = true; });
+      parols.forEach(({ r, w, node }, i) => {
         const lit = smooth(order[i], order[i] + 0.08, p);
-        e.set(0, Math.sin(t * 0.4 + i) * 0.25, Math.sin(t * 1.3 + i * 1.7) * 0.08);
-        m4.compose(pos, q.setFromEuler(e), one);
+        at(r, w, a); at(r, node, b);
+        q.setFromUnitVectors(Y, up.subVectors(b, a).normalize()); // hang along the cord
+        q.multiply(twist.setFromAxisAngle(Y, Math.sin(t * 0.4 + i) * 0.3)); // and turn a little on it
+        m4.compose(a, q, one);
         mesh.setMatrixAt(i, m4);
         mesh.setColorAt(i, c.copy(hues[i % hues.length]).multiplyScalar(0.06 + lit * 2.6));
         glowCol.setXYZ(i, ...c.copy(hues[i % hues.length]).multiplyScalar(lit * 0.55).toArray());
+        glowPos.setXYZ(i, a.x, a.y, a.z);
+        cordPos.setXYZ(i * 2, b.x, b.y, b.z);
+        cordPos.setXYZ(i * 2 + 1, a.x, a.y + 0.45, a.z);
       });
       mesh.instanceMatrix.needsUpdate = true;
       mesh.instanceColor.needsUpdate = true;
-      glowCol.needsUpdate = true;
+      glowCol.needsUpdate = true; glowPos.needsUpdate = true; cordPos.needsUpdate = true;
     });
   }
 
@@ -495,10 +680,18 @@ export function buildWorld(scene, { reflectScale = 0.5 } = {}) {
     lantern.getWorldPosition(lp);
     addGlow([{ p: lp.toArray(), size: 0.5, color: hdr('#ffc27a', 3), flicker: 0.1 }, { p: lp.toArray(), size: 4, color: hdr('#ff9c4f', 0.3) }]);
     point('#ffb066', 22, 18, lp.x, lp.y, lp.z);
+    // it rides the same ripples the water draws: read them under bow, stern and both outriggers,
+    // and let a damped spring follow, so the hull lags and settles like something with weight
+    const fwd = [Math.sin(B.heading), Math.cos(B.heading)], side = [fwd[1], -fwd[0]];
+    const under = (t, f, s) => wavesAt(B.x + fwd[0] * f + side[0] * s, B.z + fwd[1] * f + side[1] * s, t);
+    const dof = [0, 0, 0].map(() => ({ x: 0, v: 0 }));
     updates.push((t) => {
-      boat.position.y = Math.sin(t * 1.1) * 0.04;
-      boat.rotation.z = Math.sin(t * 0.9) * 0.03;
-      boat.rotation.x = Math.sin(t * 0.7) * 0.02;
+      const bow = under(t, 2.6, 0), stern = under(t, -2.6, 0), port = under(t, 0, 2.3), star = under(t, 0, -2.3);
+      const goal = [(bow + stern + port + star) * 0.012, (stern - bow) * 0.008, (port - star) * 0.01];
+      dof.forEach((d, i) => { d.v += (goal[i] - d.x) * 14 * dt; d.v *= Math.exp(-3 * dt); d.x += d.v * dt; });
+      boat.position.y = dof[0].x;
+      boat.rotation.x = dof[1].x;
+      boat.rotation.z = dof[2].x;
     });
   }
 
@@ -533,13 +726,13 @@ export function buildWorld(scene, { reflectScale = 0.5 } = {}) {
     g.setAttribute('aEnd', new THREE.BufferAttribute(end, 1));
     g.setAttribute('aSpeed', new THREE.BufferAttribute(speed, 1));
     const m = new THREE.ShaderMaterial({
-      uniforms: { uTime: { value: 0 }, uAmount: { value: 0 } },
+      uniforms: { uTime: { value: 0 }, uAmount: { value: 0 }, uSlant: { value: new THREE.Vector2() } },
       vertexShader: /* glsl */`
-        attribute float aEnd; attribute float aSpeed; uniform float uTime;
+        attribute float aEnd; attribute float aSpeed; uniform float uTime; uniform vec2 uSlant;
         void main() {
           vec3 p = position;
           p.y = 10.0 + mod(p.y - 10.0 - uTime * aSpeed, 22.0) - aEnd * 0.6;
-          p.x += aEnd * 0.06;
+          p.xz += aEnd * (vec2(0.06, 0.0) + uSlant);
           gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
         }`,
       fragmentShader: /* glsl */`uniform float uAmount; void main() { gl_FragColor = vec4(vec3(0.55, 0.62, 0.76) * uAmount * 0.55, 1.0); }`,
@@ -547,11 +740,43 @@ export function buildWorld(scene, { reflectScale = 0.5 } = {}) {
     });
     const rain = add(new THREE.LineSegments(g, m));
     rain.frustumCulled = false;
-    updates.push((t, p) => {
+    // where it lands: small rings that open and fade on the stones, each landing somewhere new
+    const ns = 140, seeds = new Float32Array(ns);
+    for (let i = 0; i < ns; i++) seeds[i] = rr();
+    const sg = new THREE.BufferGeometry();
+    sg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(ns * 3), 3));
+    sg.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 1));
+    const sm = new THREE.ShaderMaterial({
+      ...additive,
+      uniforms: { uTime: { value: 0 }, uAmount: { value: 0 }, uScale: { value: 500 } },
+      vertexShader: /* glsl */`
+        attribute float aSeed; uniform float uTime; uniform float uScale; varying float vF;
+        float h(float n) { return fract(sin(n) * 43758.5453); }
+        void main() {
+          float c = uTime * (1.6 + aSeed) + aSeed * 7.0, k = floor(c);
+          vF = fract(c);
+          vec3 p = vec3(15.3 + h(k * 12.9 + aSeed * 78.2) * 5.4, ${f3(L.PLATEAU_Y + 0.05)}, -18.0 - h(k * 4.1 + aSeed * 37.7) * 58.0);
+          vec4 mv = modelViewMatrix * vec4(p, 1.0);
+          gl_PointSize = (0.1 + vF * 0.2) * uScale / max(-mv.z, 0.1);
+          gl_Position = projectionMatrix * mv;
+        }`,
+      fragmentShader: /* glsl */`
+        uniform float uAmount; varying float vF;
+        void main() {
+          vec2 q = (gl_PointCoord - 0.5) * vec2(2.0, 5.0); // flattened: a ring lying on the ground
+          float ring = 1.0 - smoothstep(0.0, 0.18, abs(length(q) - mix(0.15, 0.9, vF)));
+          gl_FragColor = vec4(vec3(0.6, 0.68, 0.82) * ring * (1.0 - vF) * uAmount * 0.32, 1.0);
+        }`,
+    });
+    const splashes = add(new THREE.Points(sg, sm));
+    splashes.frustumCulled = false;
+    updates.push((t, p, cam, scale) => {
       const a = on(p, 3, 0.9);
-      rain.visible = a > 0.01;
-      m.uniforms.uTime.value = t;
-      m.uniforms.uAmount.value = a;
+      rain.visible = splashes.visible = a > 0.01;
+      m.uniforms.uTime.value = sm.uniforms.uTime.value = t;
+      m.uniforms.uAmount.value = sm.uniforms.uAmount.value = a;
+      m.uniforms.uSlant.value.set(wind.x, wind.z).multiplyScalar(0.03);
+      sm.uniforms.uScale.value = scale;
     });
   }
 
@@ -566,12 +791,27 @@ export function buildWorld(scene, { reflectScale = 0.5 } = {}) {
     updates.push((t, p) => { ff.material.uniforms.uAmount.value = on(p, 2, 1.1); ff.visible = ff.material.uniforms.uAmount.value > 0.01; });
   }
 
+  patchFog(scene);
+  const fogCool = new THREE.Color(FOG_COLOR), fogWarm = new THREE.Color('#1c1814');
+
   return {
     water,
-    update(t, p, camera, bufferH) {
+    /* `gust` is 0 to 1: how fast the visitor is walking right now. */
+    update(t, p, camera, bufferH, gust = 0) {
+      dt = Math.min(Math.max(t - lastT, 0), 0.05);
+      lastT = t;
+      const breeze = 0.5 + 0.5 * Math.sin(t * 0.37) * Math.sin(t * 0.13 + 1);
+      wind.copy(windDir).multiplyScalar(0.8 + 1.8 * breeze * breeze + 6 * gust);
+      windU.uTime.value = t;
+      windU.uWind.value.copy(windDir).multiplyScalar(0.12 + 0.12 * breeze + 0.45 * gust);
+      FOG_UNIFORMS.fogTime.value = t;
+      // the lamplit streets warm the fog a little
+      scene.fog.color.lerpColors(fogCool, fogWarm, 0.7 * Math.max(on(p, 3, 1.3), on(p, 4, 1.3)));
+      water.material.uniforms.uFogColor.value.copy(scene.fog.color);
+      starMat.uniforms.uPx.value = bufferH / window.innerHeight;
       const scale = bufferH / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
       for (const m of glows) { m.uniforms.uTime.value = t; m.uniforms.uScale.value = scale; }
-      for (const u of updates) u(t, p, camera);
+      for (const u of updates) u(t, p, camera, scale);
     },
     setSize(w, h) { water.getRenderTarget().setSize(Math.round(w * reflectScale), Math.round(h * reflectScale)); },
   };

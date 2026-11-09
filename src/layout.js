@@ -27,6 +27,18 @@ for (let i = 0; i < 6; i++) {
   }
 }
 
+/* A candle on every third step, both sides of the stair. */
+export const CANDLE_STEPS = [];
+for (let i = 1; i < STAIR.steps; i += 3) CANDLE_STEPS.push(i);
+export const CANDLE_COUNT = CANDLE_STEPS.length * 2;
+
+/* Parol strings: six across the street at the upper floors, two across the plaza. `n` parols on each. */
+export const PAROL_STRINGS = [
+  ...[0, 1, 2, 3, 4, 5].map((i) => ({ x0: STREET_X - 2.9, x1: STREET_X + 2.9, y: PLATEAU_Y + HOUSE.ground + HOUSE.upper - 0.2, z: -23 - i * 7.2, n: 3, sag: 0.5 })),
+  ...[-66.5, -71.5].map((z) => ({ x0: 9.5, x1: 26.5, y: PLATEAU_Y + 5.4, z, n: 5, sag: 0.8 })),
+];
+export const PAROL_COUNT = PAROL_STRINGS.reduce((s, r) => s + r.n, 0);
+
 export const PLAZA = { z0: -76, z1: -64 };
 export const CHURCH = {
   facade: { x0: 7, x1: 29, z0: -78, z1: -76, top: PLATEAU_Y + 22, peak: PLATEAU_Y + 27 },

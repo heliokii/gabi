@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { WAYPOINTS, anchorsFor, progressAt, poseAt, damp } from './path.js';
-import { groundAt, solids } from './layout.js';
+import { WAYPOINTS, NOTES, anchorsFor, progressAt, poseAt, damp } from './path.js';
+import { groundAt, solids, STAIR, houses, CANDLE_COUNT, PAROL_COUNT } from './layout.js';
 
 const N = WAYPOINTS.length - 1;
 const ASPECTS = { desktop: 1440 / 900, phone: 390 / 844 };
@@ -87,4 +87,24 @@ test('damp eases toward the target the same way at any frame rate', () => {
   for (let i = 0; i < 60; i++) a = damp(a, 1, 5, 1 / 60);
   for (let i = 0; i < 144; i++) b = damp(b, 1, 5, 1 / 144);
   assert.ok(Math.abs(a - b) < 1e-9);
+});
+
+test('the numbers on the page are counted from the town itself', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const count = (k) => Number(html.match(new RegExp(`data-count="${k}">(\\d+)<`))[1]);
+  assert.equal(count('steps'), STAIR.steps);
+  assert.equal(count('candles'), CANDLE_COUNT);
+  assert.equal(count('houses'), houses.length);
+  assert.equal(count('parols'), PAROL_COUNT);
+});
+
+test('every field note has a card, and its camera stands in open air', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const cards = [...html.matchAll(/data-note="([\w-]+)"/g)].map((m) => m[1]);
+  assert.deepEqual(cards, NOTES.map((n) => n.id));
+  for (const n of NOTES) {
+    const [x, y, z] = n.p;
+    assert.ok(y >= groundAt(x, z) + 0.8, `${n.id} underground`);
+    for (const b of solids) assert.ok(!(x > b.x0 - 0.3 && x < b.x1 + 0.3 && y > b.y0 && y < b.y1 && z > b.z0 - 0.3 && z < b.z1 + 0.3), `${n.id} inside a building`);
+  }
 });
