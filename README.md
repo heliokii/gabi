@@ -48,4 +48,4 @@ Off until the visitor presses **Sound** in the top bar. Lake water, crickets, ra
 
 ## Credits
 
-The town is fictional, inspired by Taal heritage, and not affiliated with any parish or tourism office. The idea of a scroll-driven night walk comes from [Kage by Meng To](https://github.com/MengTo/kage). No code or art was reused.
+The town is fictional, inspired by Taal heritage, and not affiliated with any parish or tourism office.
