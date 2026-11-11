@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { WAYPOINTS, NOTES, anchorsFor, progressAt, poseAt, damp } from './path.js';
-import { groundAt, solids, STAIR, houses, CANDLE_COUNT, PAROL_COUNT } from './layout.js';
+import { groundAt, solids, STAIR, houses, CANDLE_COUNT, PAROL_COUNT, MARK, VOLCANO } from './layout.js';
 
 const N = WAYPOINTS.length - 1;
 const ASPECTS = { desktop: 1440 / 900, phone: 390 / 844 };
@@ -96,6 +96,12 @@ test('the numbers on the page are counted from the town itself', () => {
   assert.equal(count('candles'), CANDLE_COUNT);
   assert.equal(count('houses'), houses.length);
   assert.equal(count('parols'), PAROL_COUNT);
+});
+
+test('the name stands past the volcano, as the opening shot sees them', () => {
+  const [x, , z] = WAYPOINTS[0].p;
+  const far = (o) => Math.hypot(o.x - x, o.z - z);
+  assert.ok(far(MARK) > far(VOLCANO) + VOLCANO.r, 'the volcano could not hide the name');
 });
 
 test('every field note has a card, and its camera stands in open air', () => {

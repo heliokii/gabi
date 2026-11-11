@@ -111,6 +111,30 @@ export function moon() {
   });
 }
 
+/*
+ * The name in the display face, its letters spread edge to edge as the old wordmark was.
+ * Painted again once the face has loaded, since the scene can start before it.
+ */
+export function mark(text = 'GABI', w = 2048, h = 512) {
+  const face = "'Newsreader', 'Iowan Old Style', Georgia, serif", pad = 8;
+  const draw = (g) => {
+    g.clearRect(0, 0, w, h);
+    g.font = `400 100px ${face}`;
+    const probe = g.measureText(text);
+    g.font = `400 ${(100 * (h - pad * 2)) / (probe.actualBoundingBoxAscent + probe.actualBoundingBoxDescent)}px ${face}`;
+    const top = g.measureText(text).actualBoundingBoxAscent;
+    const chars = [...text], m = chars.map((c) => g.measureText(c));
+    const ink = m.map((k) => k.actualBoundingBoxLeft + k.actualBoundingBoxRight);
+    const gap = (w - pad * 2 - ink.reduce((a, b) => a + b, 0)) / (chars.length - 1);
+    g.fillStyle = '#e7e2d4';
+    let x = pad;
+    chars.forEach((c, i) => { g.fillText(c, x + m[i].actualBoundingBoxLeft, pad + top); x += ink[i] + gap; });
+  };
+  const t = paint(w, h, draw);
+  document.fonts?.load(`400 64px Newsreader`).then(() => { draw(t.image.getContext('2d')); t.needsUpdate = true; });
+  return t;
+}
+
 /* Soft round glow for lamps, flames and fireflies (alpha only). */
 export function glow() {
   return paint(64, 64, (g, w, h) => {

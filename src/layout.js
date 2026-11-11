@@ -48,6 +48,11 @@ export const CHURCH = {
 
 export const VOLCANO = { x: -60, z: 130, r: 46, h: 20 };
 export const MOON = { x: -154, y: 95, z: 334, r: 15 };
+/*
+ * The name, standing on the far water past the volcano. (x, z) is on the opening shot's centre line; the word is
+ * `w` wide and its middle sits `shift` metres to the right of that line (negative: left), so it ends on the slope.
+ */
+export const MARK = { x: -37, z: 236, w: 148, shift: -44 };
 export const BANGKA = { x: -18, z: 31, heading: 1.3 };
 
 /* Height of whatever the camera would stand on at (x, z). */

@@ -5,6 +5,7 @@ import * as L from './layout.js';
 import * as T from './textures.js';
 import { FOG_UNIFORMS, HEIGHT_FOG, patchFog } from './fog.js';
 import { rope, hang, step } from './rope.js';
+import { WAYPOINTS } from './path.js';
 
 export const FOG_COLOR = '#121826';
 export const FOG_DENSITY = 0.0085;
@@ -338,6 +339,21 @@ export function buildWorld(scene, { reflectScale = 0.5 } = {}) {
         s.scale.set(10 + f * 46, 7 + f * 22, 1);
         s.material.opacity = Math.sin(Math.PI * f) * 0.22;
       }
+    });
+  }
+  { // the name on the far water: the volcano hides its foot, and only the opening shot sees it
+    const tex = T.mark(), h = (L.MARK.w * tex.image.height) / tex.image.width;
+    const name = add(new THREE.Mesh(new THREE.PlaneGeometry(L.MARK.w, h).translate(L.MARK.shift, h / 2, 0),
+      new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, fog: false })));
+    const [cx, , cz] = WAYPOINTS[0].p;
+    name.position.set(L.MARK.x, -1, L.MARK.z); // feet just under the water line
+    name.lookAt(cx, -1, cz);
+    const wide = Math.tan(THREE.MathUtils.degToRad(WAYPOINTS[0].fov / 2)) * (16 / 9);
+    updates.push((t, p, cam) => {
+      name.material.opacity = on(p, 0, 0.6);
+      name.visible = name.material.opacity > 0.01;
+      // narrower screens see less of the far shore: shrink about the centre line, so the word keeps its place in the frame
+      name.scale.setScalar(Math.min(1, (Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)) * cam.aspect) / wide));
     });
   }
   const moon = add(new THREE.Mesh(new THREE.SphereGeometry(L.MOON.r, 48, 24),
